@@ -32,6 +32,7 @@ export async function POST(request: Request) {
 
     // Use API key from request body if provided, otherwise fall back to environment variable
     const firecrawlApiKey = body.firecrawlApiKey || process.env.FIRECRAWL_API_KEY
+    const firecrawlApiUrl = process.env.FIRECRAWL_API_URL || 'https://api.firecrawl.dev'
     const groqApiKey = process.env.GROQ_API_KEY
     
     if (!firecrawlApiKey) {
@@ -102,7 +103,7 @@ export async function POST(request: Request) {
           })
           
           // Make direct API call to Firecrawl v2 search endpoint
-          const searchResponse = await fetch('https://api.firecrawl.dev/v2/search', {
+          const searchResponse = await fetch(`${firecrawlApiUrl}/v2/search`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${firecrawlApiKey}`,

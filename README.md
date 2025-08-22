@@ -39,6 +39,8 @@ cp .env.example .env.local
 
 Add to `.env.local`:
 ```
+# For self-hosted Firecrawl (optional - defaults to api.firecrawl.dev)
+FIRECRAWL_API_URL=https://your-firecrawl-instance.com
 FIRECRAWL_API_KEY=fc-your-api-key
 GROQ_API_KEY=gsk_your-groq-api-key
 ```
@@ -52,11 +54,12 @@ Visit http://localhost:3000
 
 ## API Implementation
 
-This project uses direct API calls to Firecrawl v2's search endpoint instead of the SDK to ensure all response fields are preserved:
+This project uses direct API calls to Firecrawl v2's search endpoint instead of the SDK to ensure all response fields are preserved. It supports both hosted and self-hosted Firecrawl instances:
 
 ```javascript
-// Direct API call to get full response including imageUrl, dates, etc.
-const response = await fetch('https://api.firecrawl.dev/v2/search', {
+// Direct API call to configurable Firecrawl endpoint
+const firecrawlApiUrl = process.env.FIRECRAWL_API_URL || 'https://api.firecrawl.dev'
+const response = await fetch(`${firecrawlApiUrl}/v2/search`, {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${apiKey}`,
