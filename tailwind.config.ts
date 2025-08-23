@@ -59,6 +59,19 @@ const config: Config = {
         sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["ui-monospace", "SFMono-Regular", "monospace"],
       },
+      animation: {
+        aurora: "aurora 4s ease-in-out infinite",
+      },
+      keyframes: {
+        aurora: {
+          "0%, 100%": {
+            backgroundPosition: "0% 50%",
+          },
+          "50%": {
+            backgroundPosition: "100% 50%",
+          },
+        },
+      },
     },
   },
   plugins: [],

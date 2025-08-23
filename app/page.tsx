@@ -6,6 +6,7 @@ import { SearchComponent } from './search'
 import { ChatInterface } from './chat-interface'
 import { SearchResult, NewsResult, ImageResult } from './types'
 import { Button } from '@/components/ui/button'
+import { AuroraText } from '@/components/ui/aurora-text'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
@@ -19,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { ErrorDisplay } from '@/components/error-display'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 interface MessageData {
   sources: SearchResult[]
@@ -28,7 +30,7 @@ interface MessageData {
   ticker?: string
 }
 
-export default function FireplexityPage() {
+export default function LivvuxPlexityPage() {
   const [sources, setSources] = useState<SearchResult[]>([])
   const [newsResults, setNewsResults] = useState<NewsResult[]>([])
   const [imageResults, setImageResults] = useState<ImageResult[]>([])
@@ -255,13 +257,42 @@ export default function FireplexityPage() {
             className="flex items-center"
           >
             <Image 
-              src="/firecrawl-wordmark.svg" 
-              alt="Firecrawl Logo" 
-              width={90} 
+              src="/livvuxplexity-wordmark.svg" 
+              alt="livvuxPlexity Logo" 
+              width={120} 
               height={24}
               className="h-6 w-auto"
             />
           </Link>
+          
+          {/* Navigation Menu */}
+          <nav className="flex items-center space-x-6">
+            <Link
+              href="/"
+              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors duration-200"
+            >
+              Home
+            </Link>
+            <Link
+              href="/wordpress-agent"
+              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors duration-200"
+            >
+              WordPress Agent
+            </Link>
+            <Link
+              href="/whatsapp-agent"
+              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors duration-200"
+            >
+              WhatsApp Agent
+            </Link>
+            <Link
+              href="/lovable"
+              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors duration-200"
+            >
+              Lovable
+            </Link>
+            <ThemeToggle />
+          </nav>
         </div>
       </header>
 
@@ -269,8 +300,10 @@ export default function FireplexityPage() {
       <div className={`px-4 sm:px-6 lg:px-8 pt-16 pb-8 ${isChatActive ? 'hidden' : 'block'}`}>
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-[3rem] lg:text-[4rem] font-medium tracking-tight leading-tight">
-            <span className="text-[#ff4d00] block">
-              Fireplexity v2
+            <span className="block">
+              <AuroraText className="text-[3rem] lg:text-[4rem] font-medium tracking-tight leading-tight">
+                livvuxPlexity v2
+              </AuroraText>
             </span>
             <span className="text-[#262626] dark:text-white block text-[3rem] lg:text-[4rem] font-medium -mt-2">
               Search & Scrape
@@ -318,7 +351,7 @@ export default function FireplexityPage() {
           <DialogHeader>
             <DialogTitle>Firecrawl API Key Required</DialogTitle>
             <DialogDescription>
-              To use Fireplexity search, you need a Firecrawl API key. Get one for free at{' '}
+              To use livvuxPlexity search, you need a Firecrawl API key. Get one for free at{' '}
               <a 
                 href="https://www.firecrawl.dev" 
                 target="_blank" 
