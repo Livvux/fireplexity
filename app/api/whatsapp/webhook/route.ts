@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { addWebhookLog } from './logs/route'
+import { addWebhookLog } from '@/lib/webhook-logger'
 
 interface WAHAWebhookMessage {
   event: string
