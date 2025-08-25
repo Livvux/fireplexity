@@ -11,6 +11,7 @@ import { AuroraText } from '@/components/ui/aurora-text'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
+import { Plus } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -249,6 +250,11 @@ export default function LivvuxPlexityPage() {
     setInput('')
   }
 
+  const handleNewChat = () => {
+    // Reload the page to reset all chat state
+    window.location.reload()
+  }
+
   const isChatActive = hasSearched || messages.length > 0
 
   return (
@@ -260,13 +266,32 @@ export default function LivvuxPlexityPage() {
             href="/"
             className="flex items-center"
           >
-            <Image 
-              src="/livvuxplexity-wordmark.svg" 
-              alt="livvuxPlexity Logo" 
-              width={120} 
-              height={24}
+            <svg 
+              width="120" 
+              height="24" 
+              viewBox="0 0 200 40" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-auto"
-            />
+            >
+              {/* Fire icon */}
+              <path 
+                d="M23.3606 12.8281C21.8137 13.2873 20.6476 14.3261 19.7936 15.4544C19.6102 15.6966 19.228 15.5146 19.3008 15.2178C20.936 8.49401 18.7759 2.90556 12.0422 0.154735C11.7006 0.0147436 11.345 0.321324 11.4346 0.679702C14.4977 12.9779 1.61412 11.9406 3.24224 25.8823C3.27024 26.1217 3.00145 26.2855 2.80546 26.1455C2.19509 25.7073 1.51332 24.7932 1.04575 24.1506C0.908555 23.9616 0.611769 24.0148 0.548773 24.2402C0.176391 25.5869 0 26.8553 0 28.1152C0 33.0149 2.51847 37.328 6.33048 39.8283C6.54887 39.9711 6.82886 39.7667 6.75466 39.5161C6.55867 38.8581 6.44808 38.1638 6.43968 37.4456C6.43968 37.0046 6.46768 36.5539 6.53627 36.1339C6.69587 35.0784 7.06265 34.0732 7.67862 33.1577C9.79111 29.9869 14.0259 26.9239 13.3497 22.7647C13.3063 22.5015 13.6171 22.328 13.8131 22.5085C16.7964 25.2342 17.3871 28.9005 16.8972 32.1889C16.8552 32.4745 17.2135 32.6271 17.3941 32.4031C17.8505 31.832 18.4077 31.3308 19.0138 30.9542C19.165 30.8604 19.3666 30.9318 19.424 31.0998C19.7614 32.0811 20.2626 33.0023 20.7358 33.9234C21.3013 35.0308 21.6023 36.2949 21.5547 37.6332C21.5309 38.2842 21.4231 38.9141 21.2425 39.5133C21.1655 39.7667 21.4427 39.9781 21.6653 39.8325C25.4801 37.3322 28 33.0191 28 28.1166C28 26.4129 27.7018 24.7428 27.1376 23.1777C25.9547 19.8949 22.9533 17.4297 23.712 13.1515C23.7484 12.9471 23.5594 12.7693 23.3606 12.8281Z" 
+                fill="#FA5D19"
+              />
+              
+              {/* livvuxPlexity text */}
+              <text 
+                x="35" 
+                y="28" 
+                fontFamily="Arial, sans-serif" 
+                fontSize="18" 
+                fontWeight="600" 
+                className="fill-zinc-900 dark:fill-white"
+              >
+                livvuxPlexity
+              </text>
+            </svg>
           </Link>
           
           {/* Navigation Menu */}
@@ -296,6 +321,17 @@ export default function LivvuxPlexityPage() {
               Lovable
             </Link>
             <div className="flex items-center space-x-4">
+              {isChatActive && (
+                <Button
+                  onClick={handleNewChat}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 border-zinc-300 hover:border-orange-300 dark:border-zinc-600 dark:hover:border-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all duration-200"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Chat
+                </Button>
+              )}
               <ThemeToggle />
               <LogoutButton variant="ghost" />
             </div>

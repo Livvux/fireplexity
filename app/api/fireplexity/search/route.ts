@@ -111,12 +111,10 @@ export async function POST(request: Request) {
             },
             body: JSON.stringify({
               query: query,
-              sources: ['web', 'news', 'images'],
-              limit: 6,
+              limit: 10,
               scrapeOptions: {
                 formats: ['markdown'],
-                onlyMainContent: true,
-                maxAge: 86400000  // 24 hours in milliseconds
+                onlyMainContent: true
               }
             })
           })
@@ -127,15 +125,20 @@ export async function POST(request: Request) {
           }
 
           const searchResult = await searchResponse.json()
-          const searchData = searchResult.data || {}
           
-          // Extract results from the v2 SDK response
-          const webResults = searchData.web || []
-          const newsData = searchData.news || []
-          const imagesData = searchData.images || []
+          // v2 API returns data as an array of search results
+          const searchResults = Array.isArray(searchResult.data) ? searchResult.data : []
           
-          // Transform web sources metadata
-          sources = webResults.map((item: { url: string; title?: string; description?: string; snippet?: string; content?: string; markdown?: string; favicon?: string; ogImage?: string; image?: string; metadata?: { ogImage?: string } }) => {
+          // Separate news domains for categorization
+          const newsDomains = [
+            'reuters.com', 'bbc.com', 'cnn.com', 'nytimes.com', 'washingtonpost.com',
+            'theguardian.com', 'apnews.com', 'bloomberg.com', 'wsj.com', 'npr.org',
+            'techcrunch.com', 'wired.com', 'arstechnica.com', 'engadget.com', 'theverge.com',
+            'news.google.com', 'news.yahoo.com', 'foxnews.com', 'nbcnews.com', 'abcnews.go.com'
+          ]
+          
+          // Transform and categorize results from v2 search API
+          const allSources = searchResults.map((item: any) => {
             return {
               url: item.url,
               title: item.title || item.url,
@@ -143,39 +146,54 @@ export async function POST(request: Request) {
               content: item.content,
               markdown: item.markdown,
               favicon: item.favicon,
-              image: item.ogImage || item.image || item.metadata?.ogImage,  // Add ogImage support
-              siteName: new URL(item.url).hostname
+              image: item.image,
+              siteName: item.url ? new URL(item.url).hostname : undefined,
+              publishedDate: item.publishedDate,
+              isNews: item.url ? newsDomains.some(domain => item.url.includes(domain)) : false
             };
           }).filter((item: { url: string }) => item.url) || []
-
-          // Transform news results - now with correct schema
-          newsResults = newsData.map((item: SearchResultItem) => {
-            return {
+          
+          // Split into regular sources and news
+          sources = allSources.filter(item => !item.isNews).slice(0, 6)
+          newsResults = allSources
+            .filter(item => item.isNews)
+            .map(item => ({
               url: item.url,
               title: item.title,
-              description: item.snippet || item.description,
-              publishedDate: item.date || item.publishedAt,  // Handle both date and publishedAt fields
-              source: item.source?.name || (item.url ? new URL(item.url).hostname : undefined),
-              image: item.imageUrl  // Direct API returns 'imageUrl' for news thumbnails
-            };
-          }).filter((item: { url: string }) => item.url) || []
-
-          // Transform image results - now with correct schema from direct API
-          imageResults = imagesData.map((item: ImageResultItem) => {
-            // Verify we have the required fields
-            if (!item.url || !item.imageUrl) {
-              return null;
-            }
-            return {
-              url: item.url,
-              title: item.title || 'Untitled',
-              thumbnail: item.imageUrl,  // Direct API returns 'imageUrl' field
-              source: item.url ? new URL(item.url).hostname : undefined,
-              width: item.imageWidth,
-              height: item.imageHeight,
-              position: item.position
-            };
-          }).filter(Boolean) || []  // Filter out null entries
+              description: item.description,
+              publishedDate: item.publishedDate,
+              source: item.siteName,
+              image: item.image
+            }))
+            .slice(0, 5)
+          
+          // If we don't have enough news from the main search, add recent items
+          if (newsResults.length < 3) {
+            const recentSources = allSources
+              .filter(item => !item.isNews)
+              .filter(item => {
+                const title = item.title?.toLowerCase() || ''
+                const desc = item.description?.toLowerCase() || ''
+                return title.includes('2024') || title.includes('2025') || 
+                       title.includes('latest') || title.includes('recent') ||
+                       desc.includes('2024') || desc.includes('2025')
+              })
+              .slice(0, 3 - newsResults.length)
+              .map(item => ({
+                url: item.url,
+                title: item.title,
+                description: item.description,
+                publishedDate: item.publishedDate,
+                source: item.siteName,
+                image: item.image
+              }))
+            
+            newsResults = [...newsResults, ...recentSources]
+          }
+          
+          // Images will be empty until Firecrawl search is properly configured
+          imageResults = []
+          
           
           // Send all sources as a persistent data part
           writer.write({
