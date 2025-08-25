@@ -100,6 +100,18 @@ export async function POST(request: Request) {
             transient: true
           })
           
+          // Prepare request body for Firecrawl v2 search endpoint
+          const requestBody = {
+            query: query,
+            limit: 6
+          }
+          
+          // Debug logging can be uncommented for troubleshooting
+          // console.log('=== FIRECRAWL V2 API REQUEST ===')
+          // console.log('URL:', `${firecrawlApiUrl}/v2/search`)
+          // console.log('Body:', JSON.stringify(requestBody, null, 2))
+          // console.log('================================')
+          
           // Make direct API call to Firecrawl v2 search endpoint
           const searchResponse = await fetch(`${firecrawlApiUrl}/v2/search`, {
             method: 'POST',
@@ -107,30 +119,68 @@ export async function POST(request: Request) {
               'Authorization': `Bearer ${firecrawlApiKey}`,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-              query: query,
-              sources: ['web', 'news', 'images'],
-              limit: 6,
-              scrapeOptions: {
-                formats: ['markdown'],
-                onlyMainContent: true,
-                maxAge: 86400000 // 24 hours in milliseconds
-              }
-            })
+            body: JSON.stringify(requestBody)
           })
 
           if (!searchResponse.ok) {
-            const errorData = await searchResponse.json()
+            let errorData
+            try {
+              errorData = await searchResponse.json()
+            } catch (e) {
+              errorData = { error: `HTTP ${searchResponse.status}: ${searchResponse.statusText}` }
+            }
+            // console.log('=== FIRECRAWL API ERROR ===')
+            // console.log('Status:', searchResponse.status)
+            // console.log('Error data:', errorData)
+            // console.log('===========================')
             throw new Error(`Firecrawl API error: ${errorData.error || searchResponse.statusText}`)
           }
 
           const searchResult = await searchResponse.json()
+          
+          // Debug: Log the actual response structure
+          console.log('=== FIRECRAWL V2 API RESPONSE ===')
+          console.log('Full response:', JSON.stringify(searchResult, null, 2))
+          console.log('================================')
+          
           const searchData = searchResult.data || {}
 
-          // Extract results from the v2 SDK response
-          const webResults = searchData.web || []
-          const newsData = searchData.news || []
-          const imagesData = searchData.images || []
+          // Handle v2 response format
+          let webResults = []
+          let newsData = []
+          let imagesData = []
+          
+          if (searchData.web || searchData.news || searchData.images) {
+            // v2 format with separate source arrays
+            webResults = searchData.web || []
+            newsData = searchData.news || []
+            imagesData = searchData.images || []
+            console.log('Using v2 format (separate source arrays)')
+          } else if (Array.isArray(searchData)) {
+            // Fallback: If data is an array (v1 format)
+            webResults = searchData
+            console.log('Using v1 fallback format (data as array)')
+          } else {
+            // Fallback: try to use data directly
+            webResults = [searchData].filter(item => item && item.url)
+            console.log('Using fallback format')
+          }
+          
+          // Debug: Log extracted data
+          console.log('=== EXTRACTED DATA ===')
+          console.log('Web results count:', webResults.length)
+          console.log('News results count:', newsData.length)
+          console.log('Images results count:', imagesData.length)
+          if (webResults.length > 0) {
+            console.log('First web result:', JSON.stringify(webResults[0], null, 2))
+          }
+          if (newsData.length > 0) {
+            console.log('First news result:', JSON.stringify(newsData[0], null, 2))
+          }
+          if (imagesData.length > 0) {
+            console.log('First image result:', JSON.stringify(imagesData[0], null, 2))
+          }
+          console.log('======================')
 
           // Transform web sources metadata
           sources = webResults.map((item: {
