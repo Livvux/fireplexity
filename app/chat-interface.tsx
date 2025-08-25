@@ -26,8 +26,8 @@ interface MessageData {
 function getMessageContent(message: UIMessage): string {
   if (!message.parts) return ''
   return message.parts
-    .filter((part: UIMessagePart<any, any>) => part.type === 'text')
-    .map((part: UIMessagePart<any, any>) => 'text' in part ? part.text : '')
+    .filter((part: UIMessagePart<unknown, unknown>) => part.type === 'text')
+    .map((part: UIMessagePart<unknown, unknown>) => 'text' in part ? part.text : '')
     .join('')
 }
 

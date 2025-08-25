@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { SandboxState } from '@/types/sandbox';
 import '@/types/sandbox'; // Import global types
 
 interface FileChange {

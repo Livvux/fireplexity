@@ -67,7 +67,6 @@ export default function AISandboxPage() {
   const [sandboxData, setSandboxData] = useState<SandboxData | null>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ text: 'Not connected', active: false });
-  const [responseArea, setResponseArea] = useState<string[]>([]);
   const [structureContent, setStructureContent] = useState('No sandbox created yet');
   const [promptInput, setPromptInput] = useState('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -85,9 +84,7 @@ export default function AISandboxPage() {
     const modelParam = searchParams.get('model');
     return appConfig.ai.availableModels.includes(modelParam || '') ? modelParam! : appConfig.ai.defaultModel;
   });
-  const [urlOverlayVisible, setUrlOverlayVisible] = useState(false);
   const [urlInput, setUrlInput] = useState('');
-  const [urlStatus, setUrlStatus] = useState<string[]>([]);
   const [showHomeScreen, setShowHomeScreen] = useState(true);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['app', 'src', 'src/components']));
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -97,15 +94,12 @@ export default function AISandboxPage() {
   const [activeTab, setActiveTab] = useState<'generation' | 'preview'>('preview');
   const [showStyleSelector, setShowStyleSelector] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
-  const [showLoadingBackground, setShowLoadingBackground] = useState(false);
   const [urlScreenshot, setUrlScreenshot] = useState<string | null>(null);
   const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
   const [screenshotError, setScreenshotError] = useState<string | null>(null);
   const [isPreparingDesign, setIsPreparingDesign] = useState(false);
   const [targetUrl, setTargetUrl] = useState<string>('');
   const [loadingStage, setLoadingStage] = useState<'gathering' | 'planning' | 'generating' | null>(null);
-  const [sandboxFiles, setSandboxFiles] = useState<Record<string, string>>({});
-  const [fileStructure, setFileStructure] = useState<string>('');
   
   const [conversationContext, setConversationContext] = useState<{
     scrapedWebsites: Array<{ url: string; content: Record<string, unknown>; timestamp: Date }>;
@@ -243,7 +237,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     } finally {
       setLoading(false);
     }
-  }, [router, searchParams, aiModel]);
+  }, [router, searchParams, aiModel, fetchSandboxFiles]);
 
   // Clear old conversation data on component mount and create/restore sandbox
   useEffect(() => {
@@ -912,7 +906,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     }
   };
 
-  const fetchSandboxFiles = async () => {
+  const fetchSandboxFiles = useCallback(async () => {
     if (!sandboxData) return;
     
     try {
@@ -926,15 +920,13 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setSandboxFiles(data.files || {});
-          setFileStructure(data.structure || '');
           console.log('[fetchSandboxFiles] Updated file list:', Object.keys(data.files || {}).length, 'files');
         }
       }
     } catch (error) {
       console.error('[fetchSandboxFiles] Error fetching files:', error);
     }
-  };
+  }, [sandboxData]);
   
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _restartViteServer = async (): Promise<void> => { // Not used - but needed for syntax
@@ -3182,7 +3174,7 @@ Focus on the key sections and content, making it clean and modern.`;
                         <div className="flex-1">
                           <div className="font-semibold mb-1">Build Errors Detected</div>
                           <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
-                          <div className="mt-2 text-xs opacity-70">Press 'F' or click the Fix button above to resolve</div>
+                          <div className="mt-2 text-xs opacity-70">Press &apos;F&apos; or click the Fix button above to resolve</div>
                         </div>
                       </div>
                     ) : (
@@ -3194,7 +3186,7 @@ Focus on the key sections and content, making it clean and modern.`;
                       {msg.metadata?.appliedFiles && msg.metadata.appliedFiles.length > 0 && (
                     <div className="mt-2 inline-block bg-gray-100 rounded-[10px] p-3">
                       <div className="text-xs font-medium mb-1 text-gray-700">
-                        {msg.content.includes('Applied') ? 'Files Updated:' : 'Generated Files:'}
+                        {msg.content.includes("Applied") ? "Files Updated:" : "Generated Files:"}
                       </div>
                       <div className="flex flex-wrap items-start gap-1">
                         {msg.metadata.appliedFiles.map((filePath, fileIdx) => {

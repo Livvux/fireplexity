@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Sandbox } from '@e2b/code-interpreter';
-import type { SandboxState } from '@/types/sandbox';
-import type { ConversationState } from '@/types/conversation';
 import '@/types/sandbox'; // Import global types
 
 interface ParsedResponse {
@@ -306,7 +304,7 @@ export async function POST(request: NextRequest) {
         
         // Update sandbox data if needed
         if (!global.sandboxData) {
-          const host = (sandbox as any).getHost?.(5173);
+          const host = (sandbox as { getHost?: (port: number) => string }).getHost?.(5173);
           global.sandboxData = {
             sandboxId,
             url: `https://${host}`
@@ -426,7 +424,7 @@ export async function POST(request: NextRequest) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
                 packages: uniquePackages,
-                sandboxId: sandboxId || (sandboxInstance as any).sandboxId
+                sandboxId: sandboxId || (sandboxInstance as { sandboxId?: string }).sandboxId
               })
             });
             

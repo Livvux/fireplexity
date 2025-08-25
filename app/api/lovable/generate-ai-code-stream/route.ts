@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import '@/types/sandbox';
 import { createGroq } from '@ai-sdk/groq';
 import { streamText } from 'ai';
-import type { SandboxState } from '@/types/sandbox';
 import { lovableConfig } from '@/config/lovable.config';
 
 const groq = createGroq({

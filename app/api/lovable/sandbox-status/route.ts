@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 import '@/types/sandbox';
 
-interface SandboxInstance {
-  runCode: (lang: string, code: string) => Promise<{ stdout?: string; stderr?: string }>;
-}
-
 export async function GET() {
   try {
     if (!globalThis.activeSandbox || !globalThis.sandboxData) {

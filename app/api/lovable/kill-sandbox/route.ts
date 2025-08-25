@@ -1,10 +1,5 @@
 import { NextResponse } from 'next/server';
 import '@/types/sandbox';
-import type { SandboxState } from '@/types/sandbox';
-
-interface SandboxInstance {
-  kill: () => Promise<void>;
-}
 
 
 export async function POST() {

@@ -2,10 +2,6 @@ import { NextResponse } from 'next/server';
 import '@/types/sandbox';
 import type { FileNode } from '@/types/lovable';
 
-interface SandboxInstance {
-  runCode: (lang: string, code: string) => Promise<{ stdout?: string; stderr?: string }>;
-}
-
 function isFileNodeArray(x: unknown): x is FileNode[] {
   return Array.isArray(x);
 }

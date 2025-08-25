@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import '@/types/sandbox';
-import type { ConversationState } from '@/types/conversation';
 
 
 // GET: Retrieve current conversation state

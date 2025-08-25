@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import '@/types/sandbox';
 
 // Get active sandbox from global state (in production, use a proper state management solution)
-interface SandboxInstance {
-  runCode: (lang: string, code: string) => Promise<{ stdout?: string; stderr?: string }>;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { command } = await request.json();

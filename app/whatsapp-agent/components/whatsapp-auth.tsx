@@ -23,7 +23,6 @@ export function WhatsAppAuth({ onAuthenticated, onLogout, sessionName }: WhatsAp
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isStarting, setIsStarting] = useState(false)
-  const [lastQrUpdate, setLastQrUpdate] = useState<number>(0)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 

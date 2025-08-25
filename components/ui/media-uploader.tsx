@@ -143,7 +143,7 @@ export function MediaUploader({
     setFiles(updatedFiles)
     onFilesChange(updatedFiles)
     setIsProcessing(false)
-  }, [files, maxFiles, disabled, onFilesChange, validateFile])
+  }, [files, maxFiles, disabled, onFilesChange, validateFile, createPreview])
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files

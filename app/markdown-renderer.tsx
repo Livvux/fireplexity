@@ -5,7 +5,7 @@ import Streamdown from 'streamdown'
 import { CitationTooltip } from './citation-tooltip-portal'
 import { SearchResult } from './types'
 
-type ComponentProps = { children?: React.ReactNode; [key: string]: any };
+type ComponentProps = { children?: React.ReactNode; [key: string]: unknown };
 
 interface MarkdownRendererProps {
   content: string

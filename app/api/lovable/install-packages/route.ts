@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Sandbox } from '@e2b/code-interpreter';
 import '@/types/sandbox';
 
-interface SandboxInstance {
-  runCode: (lang: string, code: string) => Promise<{ stdout?: string; stderr?: string }>;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { packages, sandboxId } = await request.json();

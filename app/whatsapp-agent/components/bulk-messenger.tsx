@@ -52,11 +52,9 @@ export function BulkMessenger({ sessionName, disabled = false, className }: Bulk
   const [customMessage, setCustomMessage] = useState('')
   const [useCustomMessage, setUseCustomMessage] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
   const [sendProgress, setSendProgress] = useState({ sent: 0, failed: 0, total: 0 })
   // const [bulkJob, setBulkJob] = useState<BulkMessage | null>(null) // Not used
-  const [csvFile, setCsvFile] = useState<File | null>(null)
   const [showPreview, setShowPreview] = useState(false)
 
   useEffect(() => {

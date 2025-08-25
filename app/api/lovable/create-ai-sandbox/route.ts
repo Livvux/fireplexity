@@ -8,8 +8,8 @@ interface ExtendedSandbox {
   sandboxId: string;
   getHost?: (port: number) => string;
   kill(): Promise<void>;
-  runCode(code: string, opts?: any): Promise<any>;
-  [key: string]: any;
+  runCode(code: string, opts?: unknown): Promise<unknown>;
+  [key: string]: unknown;
 }
 
 export async function POST() {
