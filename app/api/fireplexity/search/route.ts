@@ -4,10 +4,8 @@ import { streamText, generateText, createUIMessageStream, createUIMessageStreamR
 import type { ModelMessage } from 'ai'
 import { detectCompanyTicker } from '@/lib/company-ticker-map'
 import { selectRelevantContent } from '@/lib/content-selection'
-import type { SearchResultItem, ImageResultItem } from '@/types/lovable'
 
 export async function POST(request: Request) {
-  const requestId = Math.random().toString(36).substring(7)
   try {
     const body = await request.json()
     const messages = body.messages || []
@@ -135,7 +133,18 @@ export async function POST(request: Request) {
           const imagesData = searchData.images || []
 
           // Transform web sources metadata
-          sources = webResults.map((item: any) => {
+          sources = webResults.map((item: {
+            url: string;
+            title?: string;
+            description?: string;
+            snippet?: string;
+            content?: string;
+            markdown?: string;
+            favicon?: string;
+            ogImage?: string;
+            image?: string;
+            metadata?: { ogImage?: string };
+          }) => {
             return {
               url: item.url,
               title: item.title || item.url,
@@ -146,10 +155,18 @@ export async function POST(request: Request) {
               image: item.ogImage || item.image || item.metadata?.ogImage, // Add ogImage support
               siteName: new URL(item.url).hostname
             };
-          }).filter((item: any) => item.url) || []
+          }).filter((item: { url: string; title: string; description?: string; content?: string; markdown?: string; favicon?: string; image?: string; siteName: string }) => item.url) || []
 
           // Transform news results - now with correct schema
-          newsResults = newsData.map((item: any) => {
+          newsResults = newsData.map((item: {
+            url: string;
+            title?: string;
+            snippet?: string;
+            description?: string;
+            date?: string;
+            source?: string;
+            imageUrl?: string;
+          }) => {
             return {
               url: item.url,
               title: item.title,
@@ -158,10 +175,18 @@ export async function POST(request: Request) {
               source: item.source || (item.url ? new URL(item.url).hostname : undefined),
               image: item.imageUrl // Direct API returns 'imageUrl' for news thumbnails
             };
-          }).filter((item: any) => item.url) || []
+          }).filter((item: { url: string; title?: string; description?: string; publishedDate?: string; source?: string; image?: string }) => item.url) || []
 
           // Transform image results - now with correct schema from direct API
-          imageResults = imagesData.map((item: any) => {
+          imageResults = imagesData.map((item: {
+            url?: string;
+            imageUrl?: string;
+            title?: string;
+            alt?: string;
+            imageWidth?: number;
+            imageHeight?: number;
+            position?: number;
+          }) => {
             // Verify we have the required fields
             if (!item.url || !item.imageUrl) {
               return null;
@@ -300,10 +325,6 @@ export async function POST(request: Request) {
           const fullAnswer = await result.text
           
           // Generate follow-up questions
-          const conversationPreview = isFollowUp ? messages.map((m: { role: string; parts?: any[] }) => {
-            const content = m.parts ? m.parts.filter((p: any) => p.type === 'text').map((p: any) => p.text).join(' ') : ''
-            return `${m.role}: ${content}`
-          }).join('\n\n') : `user: ${query}`
             
           try {
             const followUpResponse = await generateText({
@@ -337,7 +358,7 @@ export async function POST(request: Request) {
               id: 'followup-1',
               data: { questions: followUpQuestions }
             })
-          } catch (followUpError) {
+          } catch {
             // Error generating follow-up questions
           }
           

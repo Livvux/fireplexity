@@ -11,10 +11,11 @@ function TradingViewWidget({ symbol, theme = 'light' }: TradingViewWidgetProps) 
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!containerRef.current) return
+    const container = containerRef.current
+    if (!container) return
 
     // Clear any existing content
-    containerRef.current.innerHTML = `
+    container.innerHTML = `
       <div class="tradingview-widget-container__widget" style="height: 100%; width: 100%;"></div>
       <div class="tradingview-widget-copyright">
         <a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
@@ -42,12 +43,12 @@ function TradingViewWidget({ symbol, theme = 'light' }: TradingViewWidgetProps) 
       height: 300
     })
 
-    containerRef.current.appendChild(script)
+    container.appendChild(script)
 
     // Cleanup
     return () => {
-      if (containerRef.current) {
-        containerRef.current.innerHTML = ''
+      if (container) {
+        container.innerHTML = ''
       }
     }
   }, [symbol, theme])

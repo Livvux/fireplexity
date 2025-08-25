@@ -9,7 +9,6 @@ import { Part } from '@/types/lovable'
 import { Button } from '@/components/ui/button'
 import { AuroraText } from '@/components/ui/aurora-text'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
 import { Plus } from 'lucide-react'
 import {

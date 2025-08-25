@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { appConfig } from '@/config/app.config';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -1382,10 +1383,12 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       if (urlScreenshot && (loading || generationProgress.isGenerating || !sandboxData?.url || isPreparingDesign)) {
         return (
           <div className="relative w-full h-full bg-gray-100">
-            <img 
+            <Image 
               src={urlScreenshot} 
               alt="Website preview" 
               className="w-full h-full object-contain"
+              fill
+              sizes="100vw"
             />
             {(generationProgress.isGenerating || isPreparingDesign) && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -3115,10 +3118,12 @@ Focus on the key sections and content, making it clean and modern.`;
                   
                   return (
                     <div key={idx} className="flex items-center gap-2 text-sm">
-                      <img 
+                      <Image 
                         src={favicon} 
                         alt={siteName}
                         className="w-4 h-4 rounded"
+                        width={16}
+                        height={16}
                         onError={(e) => {
                           e.currentTarget.src = `https://www.google.com/s2/favicons?domain=${new URL(sourceURL).hostname}&sz=32`;
                         }}
