@@ -4,14 +4,14 @@ interface WebhookLog {
   timestamp: Date
   event: string
   session: string
-  payload: any
+  payload: Record<string, unknown>
 }
 
 // Store recent webhook events (last 100)
 const webhookLogs: WebhookLog[] = []
 const MAX_LOGS = 100
 
-export function addWebhookLog(event: string, session: string, payload: any) {
+export function addWebhookLog(event: string, session: string, payload: Record<string, unknown>) {
   const log: WebhookLog = {
     id: Date.now().toString(),
     timestamp: new Date(),

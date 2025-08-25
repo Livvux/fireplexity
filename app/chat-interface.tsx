@@ -1,12 +1,12 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
-import { Send, Loader2, User, Sparkles, FileText, Plus, Copy, RefreshCw, Check } from 'lucide-react'
+import { Loader2, Sparkles, FileText, Plus, Copy, RefreshCw, Check } from 'lucide-react'
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
+// import { Button } from '@/components/ui/button' // Not used directly
 import { Textarea } from '@/components/ui/textarea'
 import { SearchResult, NewsResult, ImageResult } from './types'
-import { type UIMessage } from 'ai'
+import { type UIMessage, type UIMessagePart } from 'ai'
 import { CharacterCounter } from './character-counter'
 import Image from 'next/image'
 import { MarkdownRenderer } from './markdown-renderer'
@@ -26,8 +26,8 @@ interface MessageData {
 function getMessageContent(message: UIMessage): string {
   if (!message.parts) return ''
   return message.parts
-    .filter((part: any) => part.type === 'text')
-    .map((part: any) => part.text)
+    .filter((part: UIMessagePart<any, any>) => part.type === 'text')
+    .map((part: UIMessagePart<any, any>) => 'text' in part ? part.text : '')
     .join('')
 }
 

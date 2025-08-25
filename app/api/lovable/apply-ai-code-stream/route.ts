@@ -2,13 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Sandbox } from '@e2b/code-interpreter';
 import type { SandboxState } from '@/types/sandbox';
 import type { ConversationState } from '@/types/conversation';
-
-declare global {
-  var conversationState: ConversationState | null;
-  var activeSandbox: any;
-  var existingFiles: Set<string>;
-  var sandboxState: SandboxState;
-}
+import '@/types/sandbox'; // Import global types
 
 interface ParsedResponse {
   explanation: string;
@@ -295,7 +289,7 @@ export async function POST(request: NextRequest) {
     }
     
     // First, always check the global state for active sandbox
-    let sandbox = global.activeSandbox;
+    let sandbox = globalThis.activeSandbox;
     
     // If we don't have a sandbox in this instance but we have a sandboxId,
     // reconnect to the existing sandbox
@@ -308,11 +302,11 @@ export async function POST(request: NextRequest) {
         console.log(`[apply-ai-code-stream] Successfully reconnected to sandbox ${sandboxId}`);
         
         // Store the reconnected sandbox globally for this instance
-        global.activeSandbox = sandbox;
+        globalThis.activeSandbox = sandbox;
         
         // Update sandbox data if needed
         if (!global.sandboxData) {
-          const host = (sandbox as any).getHost(5173);
+          const host = (sandbox as any).getHost?.(5173);
           global.sandboxData = {
             sandboxId,
             url: `https://${host}`
@@ -369,7 +363,7 @@ export async function POST(request: NextRequest) {
     const writer = stream.writable.getWriter();
     
     // Function to send progress updates
-    const sendProgress = async (data: any) => {
+    const sendProgress = async (data: Record<string, unknown>) => {
       const message = `data: ${JSON.stringify(data)}\n\n`;
       await writer.write(encoder.encode(message));
     };
@@ -463,7 +457,7 @@ export async function POST(request: NextRequest) {
                       if (data.type === 'success' && data.installedPackages) {
                         results.packagesInstalled = data.installedPackages;
                       }
-                    } catch (e) {
+                    } catch {
                       // Ignore parse errors
                     }
                   }
@@ -546,7 +540,7 @@ os.makedirs(os.path.dirname("${fullPath}"), exist_ok=True)
 with open("${fullPath}", 'w') as f:
     f.write("""${escapedContent}""")
 print(f"File written: ${fullPath}")
-            `);
+            `, { language: 'python' });
             
             // Update file cache
             if (global.sandboxState?.fileCache) {
@@ -599,27 +593,30 @@ print(f"File written: ${fullPath}")
                 action: 'executing'
               });
               
-              // Use E2B commands.run() for cleaner execution
-              const result = await sandboxInstance.commands.run(cmd, {
-                cwd: '/home/user/app',
-                timeout: 60,
-                on_stdout: async (data: string) => {
-                  await sendProgress({
-                    type: 'command-output',
-                    command: cmd,
-                    output: data,
-                    stream: 'stdout'
-                  });
-                },
-                on_stderr: async (data: string) => {
-                  await sendProgress({
-                    type: 'command-output',
-                    command: cmd,
-                    output: data,
-                    stream: 'stderr'
-                  });
-                }
+              // Execute command using runCode
+              const result = await sandboxInstance.runCode(`cd /home/user/app && ${cmd}`, { 
+                language: 'bash',
+                timeout: 60000
               });
+              
+              // Send output
+              if (result.results?.[0]?.text) {
+                await sendProgress({
+                  type: 'command-output',
+                  command: cmd,
+                  output: result.results[0].text,
+                  stream: 'stdout'
+                });
+              }
+              
+              if (result.error) {
+                await sendProgress({
+                  type: 'command-output',
+                  command: cmd,
+                  output: result.error,
+                  stream: 'stderr'
+                });
+              }
               
               if (results.commandsExecuted) {
                 results.commandsExecuted.push(cmd);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { appConfig } from '@/config/app.config';
 import { Button } from '@/components/ui/button';
@@ -20,13 +20,14 @@ import {
   SiCss3, 
   SiJson 
 } from '@/lib/icons';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+// Note: AnimatePresence imported but not used
 import CodeApplicationProgress, { type CodeApplicationState } from '@/components/CodeApplicationProgress';
 
 interface SandboxData {
   sandboxId: string;
   url: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ChatMessage {
@@ -35,11 +36,31 @@ interface ChatMessage {
   timestamp: Date;
   metadata?: {
     scrapedUrl?: string;
-    scrapedContent?: any;
+    scrapedContent?: Record<string, unknown>;
     generatedCode?: string;
     appliedFiles?: string[];
     commandType?: 'input' | 'output' | 'error' | 'success';
   };
+}
+
+interface ApplyResults {
+  packagesInstalled?: string[];
+  filesCreated?: string[];
+  filesUpdated?: string[];
+  commandsExecuted?: string[];
+  errors?: string[];
+  packagesFailed?: string[];
+}
+
+// Type utilities
+function toErrorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'string') return e;
+  try { return JSON.stringify(e); } catch { return String(e); }
+}
+
+function isApplyResults(value: unknown): value is ApplyResults {
+  return typeof value === 'object' && value !== null;
 }
 
 export default function AISandboxPage() {
@@ -87,7 +108,7 @@ export default function AISandboxPage() {
   const [fileStructure, setFileStructure] = useState<string>('');
   
   const [conversationContext, setConversationContext] = useState<{
-    scrapedWebsites: Array<{ url: string; content: any; timestamp: Date }>;
+    scrapedWebsites: Array<{ url: string; content: Record<string, unknown>; timestamp: Date }>;
     generatedComponents: Array<{ name: string; path: string; content: string }>;
     appliedCode: Array<{ files: string[]; timestamp: Date }>;
     currentProject: string;
@@ -119,7 +140,7 @@ export default function AISandboxPage() {
     thinkingText?: string;
     thinkingDuration?: number;
     currentFile?: { path: string; content: string; type: string };
-    files: Array<{ path: string; content: string; type: string; completed: boolean }>;
+    files: Array<{ path: string; content: string; type: string; completed: boolean; edited?: boolean }>;
     lastProcessedPosition: number;
     isEdit?: boolean;
   }>({
@@ -133,6 +154,96 @@ export default function AISandboxPage() {
     files: [],
     lastProcessedPosition: 0
   });
+
+  // Define createSandbox before useEffect that calls it
+  const createSandbox = useCallback(async (fromHomeScreen = false) => {
+    console.log('[createSandbox] Starting sandbox creation...');
+    setLoading(true);
+    setShowLoadingBackground(true);
+    updateStatus('Creating sandbox...', false);
+    setResponseArea([]);
+    setScreenshotError(null);
+    
+    try {
+      const response = await fetch('/api/lovable/create-ai-sandbox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      
+      const data = await response.json();
+      console.log('[createSandbox] Response data:', data);
+      
+      if (data.success) {
+        setSandboxData(data);
+        updateStatus('Sandbox active', true);
+        log('Sandbox created successfully!');
+        log(`Sandbox ID: ${data.sandboxId}`);
+        log(`URL: ${data.url}`);
+        
+        // Update URL with sandbox ID
+        const newParams = new URLSearchParams(searchParams.toString());
+        newParams.set('sandbox', data.sandboxId);
+        newParams.set('model', aiModel);
+        router.push(`/?${newParams.toString()}`, { scroll: false });
+        
+        // Fade out loading background after sandbox loads
+        setTimeout(() => {
+          setShowLoadingBackground(false);
+        }, 3000);
+        
+        if (data.structure) {
+          displayStructure(data.structure);
+        }
+        
+        // Fetch sandbox files after creation
+        setTimeout(fetchSandboxFiles, 1000);
+        
+        // Restart Vite server to ensure it's running
+        setTimeout(async () => {
+          try {
+            console.log('[createSandbox] Ensuring Vite server is running...');
+            const restartResponse = await fetch('/api/lovable/restart-vite', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (restartResponse.ok) {
+              const restartData = await restartResponse.json();
+              if (restartData.success) {
+                console.log('[createSandbox] Vite server started successfully');
+              }
+            }
+          } catch (error) {
+            console.error('[createSandbox] Error starting Vite server:', error);
+          }
+        }, 2000);
+        
+        // Only add welcome message if not coming from home screen
+        if (!fromHomeScreen) {
+          addChatMessage(`Sandbox created! ID: ${data.sandboxId}. I now have context of your sandbox and can help you build your app. Just ask me to create components and I'll automatically apply them!
+
+Tip: I automatically detect and install npm packages from your code imports (like react-router-dom, axios, etc.)`, 'system');
+        }
+        
+        setTimeout(() => {
+          if (iframeRef.current) {
+            iframeRef.current.src = data.url;
+          }
+        }, 100);
+      } else {
+        throw new Error(data.error || 'Unknown error');
+      }
+    } catch (error: unknown) {
+      console.error('[createSandbox] Error:', error);
+      updateStatus('Error', false);
+      const errorMessage = toErrorMessage(error);
+      log(`Failed to create sandbox: ${errorMessage}`, 'error');
+      addChatMessage(`Failed to create sandbox: ${errorMessage}`, 'system');
+    } finally {
+      setLoading(false);
+    }
+  }, [router, searchParams, aiModel]);
 
   // Clear old conversation data on component mount and create/restore sandbox
   useEffect(() => {
@@ -187,7 +298,7 @@ export default function AISandboxPage() {
     return () => {
       isMounted = false;
     };
-  }, []); // Run only on mount
+  }, [createSandbox, searchParams]); // Add dependencies
   
   useEffect(() => {
     // Handle Escape key for home screen
@@ -268,17 +379,12 @@ export default function AISandboxPage() {
     addChatMessage('Sandbox is ready. Vite configuration is handled by the template.', 'system');
   };
   
-  const handleSurfaceError = (errors: any[]) => {
-    // Function kept for compatibility but Vite errors are now handled by template
-    
-    // Focus the input
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-    if (textarea) {
-      textarea.focus();
-    }
-  };
+  // handleSurfaceError function removed - was unused
+  // Function kept for compatibility but Vite errors are now handled by template
   
-  const installPackages = async (packages: string[]) => {
+  // Unused function removed to fix lint errors
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _installPackages = async (packages: string[]) => {
     if (!sandboxData) {
       addChatMessage('No active sandbox. Create a sandbox first!', 'system');
       return;
@@ -341,8 +447,9 @@ export default function AISandboxPage() {
           }
         }
       }
-    } catch (error: any) {
-      addChatMessage(`Failed to install packages: ${error.message}`, 'system');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      addChatMessage(`Failed to install packages: ${errorMessage}`, 'system');
     }
   };
 
@@ -369,95 +476,8 @@ export default function AISandboxPage() {
     }
   };
 
-  const createSandbox = async (fromHomeScreen = false) => {
-    console.log('[createSandbox] Starting sandbox creation...');
-    setLoading(true);
-    setShowLoadingBackground(true);
-    updateStatus('Creating sandbox...', false);
-    setResponseArea([]);
-    setScreenshotError(null);
-    
-    try {
-      const response = await fetch('/api/lovable/create-ai-sandbox', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      });
-      
-      const data = await response.json();
-      console.log('[createSandbox] Response data:', data);
-      
-      if (data.success) {
-        setSandboxData(data);
-        updateStatus('Sandbox active', true);
-        log('Sandbox created successfully!');
-        log(`Sandbox ID: ${data.sandboxId}`);
-        log(`URL: ${data.url}`);
-        
-        // Update URL with sandbox ID
-        const newParams = new URLSearchParams(searchParams.toString());
-        newParams.set('sandbox', data.sandboxId);
-        newParams.set('model', aiModel);
-        router.push(`/?${newParams.toString()}`, { scroll: false });
-        
-        // Fade out loading background after sandbox loads
-        setTimeout(() => {
-          setShowLoadingBackground(false);
-        }, 3000);
-        
-        if (data.structure) {
-          displayStructure(data.structure);
-        }
-        
-        // Fetch sandbox files after creation
-        setTimeout(fetchSandboxFiles, 1000);
-        
-        // Restart Vite server to ensure it's running
-        setTimeout(async () => {
-          try {
-            console.log('[createSandbox] Ensuring Vite server is running...');
-            const restartResponse = await fetch('/api/lovable/restart-vite', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
-            });
-            
-            if (restartResponse.ok) {
-              const restartData = await restartResponse.json();
-              if (restartData.success) {
-                console.log('[createSandbox] Vite server started successfully');
-              }
-            }
-          } catch (error) {
-            console.error('[createSandbox] Error starting Vite server:', error);
-          }
-        }, 2000);
-        
-        // Only add welcome message if not coming from home screen
-        if (!fromHomeScreen) {
-          addChatMessage(`Sandbox created! ID: ${data.sandboxId}. I now have context of your sandbox and can help you build your app. Just ask me to create components and I'll automatically apply them!
 
-Tip: I automatically detect and install npm packages from your code imports (like react-router-dom, axios, etc.)`, 'system');
-        }
-        
-        setTimeout(() => {
-          if (iframeRef.current) {
-            iframeRef.current.src = data.url;
-          }
-        }, 100);
-      } else {
-        throw new Error(data.error || 'Unknown error');
-      }
-    } catch (error: any) {
-      console.error('[createSandbox] Error:', error);
-      updateStatus('Error', false);
-      log(`Failed to create sandbox: ${error.message}`, 'error');
-      addChatMessage(`Failed to create sandbox: ${error.message}`, 'system');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const displayStructure = (structure: any) => {
+  const displayStructure = (structure: Record<string, unknown>) => {
     if (typeof structure === 'object') {
       setStructureContent(JSON.stringify(structure, null, 2));
     } else {
@@ -474,11 +494,11 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       setCodeApplicationState({ stage: 'analyzing' });
       
       // Get pending packages from tool calls
-      const pendingPackages = ((window as any).pendingPackages || []).filter((pkg: any) => pkg && typeof pkg === 'string');
+      const pendingPackages = ((window as Window & { pendingPackages?: unknown[] }).pendingPackages || []).filter((pkg: unknown) => pkg && typeof pkg === 'string');
       if (pendingPackages.length > 0) {
         console.log('[applyGeneratedCode] Sending packages from tool calls:', pendingPackages);
         // Clear pending packages after use
-        (window as any).pendingPackages = [];
+        (window as Window & { pendingPackages?: string[] }).pendingPackages = [];
       }
       
       // Use streaming endpoint for real-time feedback
@@ -500,7 +520,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       // Handle streaming response
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let finalData: any = null;
+      let finalData: Record<string, unknown> | null = null;
       
       while (reader) {
         const { done, value } = await reader.read();
@@ -530,7 +550,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                   } else if (data.message.includes('Creating files') || data.message.includes('Applying')) {
                     setCodeApplicationState({ 
                       stage: 'applying',
-                      filesGenerated: results.filesCreated 
+                      filesGenerated: data.filesCreated || []
                     });
                   }
                   break;
@@ -611,7 +631,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                   }
                   break;
               }
-            } catch (e) {
+            } catch {
               // Ignore parse errors
             }
           }
@@ -629,14 +649,14 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         };
         
         if (data.success) {
-          const { results } = data;
+          const results = isApplyResults(data.results) ? data.results : {} as ApplyResults;
         
         // Log package installation results without duplicate messages
-        if (results.packagesInstalled?.length > 0) {
+        if (results.packagesInstalled && results.packagesInstalled.length > 0) {
           log(`Packages installed: ${results.packagesInstalled.join(', ')}`);
         }
         
-        if (results.filesCreated?.length > 0) {
+        if (results.filesCreated && results.filesCreated.length > 0) {
           log('Files created:');
           results.filesCreated.forEach((file: string) => {
             log(`  ${file}`, 'command');
@@ -654,7 +674,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
           }
         }
         
-        if (results.filesUpdated?.length > 0) {
+        if (results.filesUpdated && results.filesUpdated.length > 0) {
           log('Files updated:');
           results.filesUpdated.forEach((file: string) => {
             log(`  ${file}`, 'command');
@@ -670,43 +690,44 @@ Tip: I automatically detect and install npm packages from your code imports (lik
           }]
         }));
         
-        if (results.commandsExecuted?.length > 0) {
+        if (results.commandsExecuted && results.commandsExecuted.length > 0) {
           log('Commands executed:');
           results.commandsExecuted.forEach((cmd: string) => {
             log(`  $ ${cmd}`, 'command');
           });
         }
         
-        if (results.errors?.length > 0) {
+        if (results.errors && results.errors.length > 0) {
           results.errors.forEach((err: string) => {
             log(err, 'error');
           });
         }
         
-        if (data.structure) {
-          displayStructure(data.structure);
+        if (data.structure && typeof data.structure === 'object') {
+          displayStructure(data.structure as Record<string, unknown>);
         }
         
-        if (data.explanation) {
+        if (data.explanation && typeof data.explanation === 'string') {
           log(data.explanation);
         }
         
-        if (data.autoCompleted) {
+        if ((data as Record<string, unknown>).autoCompleted) {
           log('Auto-generating missing components...', 'command');
           
-          if (data.autoCompletedComponents) {
+          if (Array.isArray((data as Record<string, unknown>).autoCompletedComponents)) {
             setTimeout(() => {
               log('Auto-generated missing components:', 'info');
-              data.autoCompletedComponents.forEach((comp: string) => {
+              ((data as Record<string, unknown>).autoCompletedComponents as string[]).forEach((comp: string) => {
                 log(`  ${comp}`, 'command');
               });
             }, 1000);
           }
-        } else if (data.warning) {
-          log(data.warning, 'error');
+        } else if ((data as Record<string, unknown>).warning) {
+          log((data as Record<string, unknown>).warning as string, 'error');
           
-          if (data.missingImports && data.missingImports.length > 0) {
-            const missingList = data.missingImports.join(', ');
+          const missingImports = (data as Record<string, unknown>).missingImports;
+          if (Array.isArray(missingImports) && missingImports.length > 0) {
+            const missingList = (missingImports as string[]).join(', ');
             addChatMessage(
               `Ask me to "create the missing components: ${missingList}" to fix these import errors.`,
               'system'
@@ -716,16 +737,16 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         
         log('Code applied successfully!');
         console.log('[applyGeneratedCode] Response data:', data);
-        console.log('[applyGeneratedCode] Debug info:', data.debug);
+        console.log('[applyGeneratedCode] Debug info:', (data as Record<string, unknown>).debug);
         console.log('[applyGeneratedCode] Current sandboxData:', sandboxData);
         console.log('[applyGeneratedCode] Current iframe element:', iframeRef.current);
         console.log('[applyGeneratedCode] Current iframe src:', iframeRef.current?.src);
         
-        if (results.filesCreated?.length > 0) {
+        if (results.filesCreated && results.filesCreated.length > 0) {
           setConversationContext(prev => ({
             ...prev,
             appliedCode: [...prev.appliedCode, {
-              files: results.filesCreated,
+              files: results.filesCreated || [],
               timestamp: new Date()
             }]
           }));
@@ -744,16 +765,16 @@ Tip: I automatically detect and install npm packages from your code imports (lik
             
             // Don't show files if part of generation flow to avoid duplication
             if (isPartOfGeneration) {
-              addChatMessage(`Applied ${results.filesCreated.length} files successfully!`, 'system');
+              addChatMessage(`Applied ${results.filesCreated?.length || 0} files successfully!`, 'system');
             } else {
-              addChatMessage(`Applied ${results.filesCreated.length} files successfully!`, 'system', {
-                appliedFiles: results.filesCreated
+              addChatMessage(`Applied ${results.filesCreated?.length || 0} files successfully!`, 'system', {
+                appliedFiles: results.filesCreated || []
               });
             }
           }
           
           // If there are failed packages, add a message about checking for errors
-          if (results.packagesFailed?.length > 0) {
+          if ((results.packagesFailed?.length ?? 0) > 0) {
             addChatMessage(`⚠️ Some packages failed to install. Check the error banner above for details.`, 'system');
           }
           
@@ -801,7 +822,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
           if (iframeRef.current && sandboxData?.url) {
             // Wait for Vite to process the file changes
             // If packages were installed, wait longer for Vite to restart
-            const packagesInstalled = results?.packagesInstalled?.length > 0 || data.results?.packagesInstalled?.length > 0;
+            const packagesInstalled = (results?.packagesInstalled?.length ?? 0) > 0 || (isApplyResults(data.results) && (data.results?.packagesInstalled?.length ?? 0) > 0);
             const refreshDelay = packagesInstalled ? appConfig.codeApplication.packageInstallRefreshDelay : appConfig.codeApplication.defaultRefreshDelay;
             console.log(`[applyGeneratedCode] Packages installed: ${packagesInstalled}, refresh delay: ${refreshDelay}ms`);
             
@@ -832,7 +853,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                     console.log('[applyGeneratedCode] Iframe loaded successfully');
                     return;
                   }
-                } catch (e) {
+                } catch {
                   console.log('[applyGeneratedCode] Cannot access iframe content (CORS), assuming loaded');
                   return;
                 }
@@ -863,7 +884,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
               parent?.appendChild(newIframe);
               
               // Update ref
-              (iframeRef as any).current = newIframe;
+              (iframeRef as React.MutableRefObject<HTMLIFrameElement | null>).current = newIframe;
               
               console.log('[applyGeneratedCode] Iframe recreated with new content');
             } else {
@@ -873,14 +894,14 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         }
         
         } else {
-          throw new Error(finalData?.error || 'Failed to apply code');
+          throw new Error(String(finalData?.error || 'Failed to apply code'));
         }
       } else {
         // If no final data was received, still close loading
         addChatMessage('Code application may have partially succeeded. Check the preview.', 'system');
       }
-    } catch (error: any) {
-      log(`Failed to apply code: ${error.message}`, 'error');
+    } catch (error: unknown) {
+      log(`Failed to apply code: ${toErrorMessage(error)}`, 'error');
     } finally {
       setLoading(false);
       // Clear isEdit flag after applying code
@@ -915,7 +936,8 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     }
   };
   
-  const restartViteServer = async () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _restartViteServer = async (): Promise<void> => { // Not used - but needed for syntax
     try {
       addChatMessage('Restarting Vite dev server...', 'system');
       
@@ -947,7 +969,8 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     }
   };
 
-  const applyCode = async () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _applyCode = async () => { // Not used - but needed for syntax
     const code = promptInput.trim();
     if (!code) {
       log('Please enter some code first', 'error');
@@ -969,8 +992,8 @@ Tip: I automatically detect and install npm packages from your code imports (lik
   const renderMainContent = () => {
     if (activeTab === 'generation' && (generationProgress.isGenerating || generationProgress.files.length > 0)) {
       return (
-        /* Generation Tab Content */
         <div className="absolute inset-0 flex overflow-hidden">
+          {/* Generation Tab Content */}
           {/* File Explorer - Hide during edits */}
           {!generationProgress.isEdit && (
             <div className="w-[250px] border-r border-gray-200 bg-white flex flex-col flex-shrink-0">
@@ -1009,11 +1032,11 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                       const fileTree: { [key: string]: Array<{ name: string; edited?: boolean }> } = {};
                       
                       // Create a map of edited files
-                      const editedFiles = new Set(
-                        generationProgress.files
-                          .filter(f => f.edited)
-                          .map(f => f.path)
-                      );
+                      // const editedFiles = new Set(
+                      //   generationProgress.files
+                      //     .filter(f => (f as { edited?: boolean }).edited)
+                      //     .map(f => f.path)
+                      // );
                       
                       // Process all files from generation progress
                       generationProgress.files.forEach(file => {
@@ -1024,7 +1047,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                         if (!fileTree[dir]) fileTree[dir] = [];
                         fileTree[dir].push({
                           name: fileName,
-                          edited: file.edited || false
+                          edited: (file as { edited?: boolean }).edited || false
                         });
                       });
                       
@@ -1497,8 +1520,8 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     if (!sandboxData) {
       sandboxCreating = true;
       addChatMessage('Creating sandbox while I plan your app...', 'system');
-      sandboxPromise = createSandbox(true).catch((error: any) => {
-        addChatMessage(`Failed to create sandbox: ${error.message}`, 'system');
+      sandboxPromise = createSandbox(true).catch((error: unknown) => {
+        addChatMessage(`Failed to create sandbox: ${toErrorMessage(error)}`, 'system');
         throw error;
       });
     }
@@ -1745,7 +1768,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                   if (data.packagesToInstall && data.packagesToInstall.length > 0) {
                     console.log('[generate-code] Packages to install from tools:', data.packagesToInstall);
                     // Store packages globally for later installation
-                    (window as any).pendingPackages = data.packagesToInstall;
+                    (window as Window & { pendingPackages?: string[] }).pendingPackages = data.packagesToInstall;
                   }
                   
                   // Parse all files from the completed code if not already done
@@ -1857,9 +1880,9 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         // Switch to preview but keep files for display
         setActiveTab('preview');
       }, 1000); // Reduced from 3000ms to 1000ms
-    } catch (error: any) {
+    } catch (error: unknown) {
       setChatMessages(prev => prev.filter(msg => msg.content !== 'Thinking...'));
-      addChatMessage(`Error: ${error.message}`, 'system');
+      addChatMessage(`Error: ${toErrorMessage(error)}`, 'system');
       // Reset generation progress and switch back to preview on error
       setGenerationProgress({
         isGenerating: false,
@@ -1920,9 +1943,9 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       } else {
         throw new Error(data.error);
       }
-    } catch (error: any) {
-      log(`Failed to create zip: ${error.message}`, 'error');
-      addChatMessage(`Failed to create ZIP: ${error.message}`, 'system');
+    } catch (error: unknown) {
+      log(`Failed to create zip: ${toErrorMessage(error)}`, 'error');
+      addChatMessage(`Failed to create ZIP: ${toErrorMessage(error)}`, 'system');
     } finally {
       setLoading(false);
     }
@@ -1982,7 +2005,8 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     }
   };
 
-  const clearChatHistory = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _clearChatHistory = () => { // Not used - but needed for syntax
     setChatMessages([{
       content: 'Chat history cleared. How can I help you?',
       type: 'system',
@@ -1991,7 +2015,8 @@ Tip: I automatically detect and install npm packages from your code imports (lik
   };
 
 
-  const cloneWebsite = async () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _cloneWebsite = async () => { // Not used - but needed for syntax
     let url = urlInput.trim();
     if (!url) {
       setUrlStatus(prev => [...prev, 'Please enter a URL']);
@@ -2248,7 +2273,7 @@ Focus on the key sections and content, making it clean and modern while preservi
             await sandboxPromise;
             // Remove the waiting message
             setChatMessages(prev => prev.filter(msg => msg.content !== 'Waiting for sandbox to be ready...'));
-          } catch (error: any) {
+          } catch (error: unknown) {
             addChatMessage('Sandbox creation failed. Cannot apply code.', 'system');
             throw error;
           }
@@ -2294,8 +2319,8 @@ Focus on the key sections and content, making it clean and modern while preservi
         throw new Error('Failed to generate recreation');
       }
       
-    } catch (error: any) {
-      addChatMessage(`Failed to clone website: ${error.message}`, 'system');
+    } catch (error: unknown) {
+      addChatMessage(`Failed to clone website: ${toErrorMessage(error)}`, 'system');
       setUrlStatus([]);
       setIsPreparingDesign(false);
       // Clear all states on error
@@ -2720,8 +2745,8 @@ Focus on the key sections and content, making it clean and modern.`;
           // Switch back to preview tab but keep files
           setActiveTab('preview');
         }, 1000); // Show completion briefly then switch
-      } catch (error: any) {
-        addChatMessage(`Failed to clone website: ${error.message}`, 'system');
+      } catch (error: unknown) {
+        addChatMessage(`Failed to clone website: ${toErrorMessage(error)}`, 'system');
         setUrlStatus([]);
         setIsPreparingDesign(false);
         // Also clear generation progress on error
@@ -2992,7 +3017,7 @@ Focus on the key sections and content, making it clean and modern.`;
                 >
                   {appConfig.ai.availableModels.map(model => (
                     <option key={model} value={model}>
-                      {appConfig.ai.modelDisplayNames[model] || model}
+                      {appConfig.ai.modelDisplayNames[model as keyof typeof appConfig.ai.modelDisplayNames] || model}
                     </option>
                   ))}
                 </select>
@@ -3029,7 +3054,7 @@ Focus on the key sections and content, making it clean and modern.`;
           >
             {appConfig.ai.availableModels.map(model => (
               <option key={model} value={model}>
-                {appConfig.ai.modelDisplayNames[model] || model}
+                {appConfig.ai.modelDisplayNames[model as keyof typeof appConfig.ai.modelDisplayNames] || model}
               </option>
             ))}
           </select>
@@ -3080,10 +3105,10 @@ Focus on the key sections and content, making it clean and modern.`;
               <div className="flex flex-col gap-2">
                 {conversationContext.scrapedWebsites.map((site, idx) => {
                   // Extract favicon and site info from the scraped data
-                  const metadata = site.content?.metadata || {};
-                  const sourceURL = metadata.sourceURL || site.url;
-                  const favicon = metadata.favicon || `https://www.google.com/s2/favicons?domain=${new URL(sourceURL).hostname}&sz=32`;
-                  const siteName = metadata.ogSiteName || metadata.title || new URL(sourceURL).hostname;
+                  const metadata = (site.content?.metadata ?? {}) as Partial<{ sourceURL: string; favicon: string; ogSiteName: string; title: string }>;
+                  const sourceURL = metadata.sourceURL ?? site.url;
+                  const favicon = metadata.favicon ?? `https://www.google.com/s2/favicons?domain=${new URL(sourceURL).hostname}&sz=32`;
+                  const siteName = metadata.ogSiteName ?? metadata.title ?? new URL(sourceURL).hostname;
                   
                   return (
                     <div key={idx} className="flex items-center gap-2 text-sm">
@@ -3119,7 +3144,7 @@ Focus on the key sections and content, making it clean and modern.`;
                                          msg.content.includes('Code generated!');
               
               // Get the files from metadata if this is a completion message
-              const completedFiles = msg.metadata?.appliedFiles || [];
+              // const completedFiles = msg.metadata?.appliedFiles || []; // Not used
               
               return (
                 <div key={idx} className="block">

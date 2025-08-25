@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your_super_secret_jwt_key_min_32_characters_long_for_security'
@@ -38,8 +38,21 @@ export async function createSession(username: string): Promise<string> {
 export async function verifySession(token: string): Promise<SessionData> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)
-    return payload as SessionData
+    
+    // Safely extract the known properties from the JWT payload
+    if (typeof payload.username === 'string' && 
+        typeof payload.isAuthenticated === 'boolean' && 
+        typeof payload.exp === 'number') {
+      return {
+        username: payload.username,
+        isAuthenticated: payload.isAuthenticated,
+        exp: payload.exp
+      }
+    }
+    
+    throw new AuthError('Invalid session data structure', 401)
   } catch (error) {
+    if (error instanceof AuthError) throw error
     throw new AuthError('Invalid or expired session', 401)
   }
 }

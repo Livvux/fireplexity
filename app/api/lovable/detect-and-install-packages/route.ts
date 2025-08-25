@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import '@/types/sandbox';
 
-declare global {
-  var activeSandbox: any;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +13,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    if (!global.activeSandbox) {
+    if (!globalThis.activeSandbox) {
       return NextResponse.json({
         success: false,
         error: 'No active sandbox'
@@ -65,7 +63,7 @@ export async function POST(request: NextRequest) {
       if (builtins.includes(imp)) return false;
       
       // Extract package name (handle scoped packages and subpaths)
-      const parts = imp.split('/');
+      // const parts = imp.split('/'); // Commented out as it's not used
       if (imp.startsWith('@')) {
         // Scoped package like @vitejs/plugin-react
         return true;
@@ -101,7 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check which packages are already installed
-    const checkResult = await global.activeSandbox.runCode(`
+    const checkResult = await globalThis.activeSandbox.runCode(`
 import os
 import json
 
@@ -145,7 +143,7 @@ print(json.dumps(result))
     // Install missing packages
     console.log('[detect-and-install-packages] Installing packages:', status.missing);
     
-    const installResult = await global.activeSandbox.runCode(`
+    const installResult = await globalThis.activeSandbox.runCode(`
 import subprocess
 import os
 import json

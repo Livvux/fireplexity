@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import '@/types/sandbox';
 import { Sandbox } from '@e2b/code-interpreter';
 
-declare global {
-  var activeSandbox: any;
-  var sandboxData: any;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,13 +34,13 @@ export async function POST(request: NextRequest) {
     }
     
     // Try to get sandbox - either from global or reconnect
-    let sandbox = global.activeSandbox;
+    let sandbox = globalThis.activeSandbox;
     
     if (!sandbox && sandboxId) {
       console.log(`[install-packages] Reconnecting to sandbox ${sandboxId}...`);
       try {
         sandbox = await Sandbox.connect(sandboxId, { apiKey: process.env.E2B_API_KEY });
-        global.activeSandbox = sandbox;
+        globalThis.activeSandbox = sandbox;
         console.log(`[install-packages] Successfully reconnected to sandbox ${sandboxId}`);
       } catch (error) {
         console.error(`[install-packages] Failed to reconnect to sandbox:`, error);

@@ -5,6 +5,8 @@ import Streamdown from 'streamdown'
 import { CitationTooltip } from './citation-tooltip-portal'
 import { SearchResult } from './types'
 
+type ComponentProps = { children?: React.ReactNode; [key: string]: any };
+
 interface MarkdownRendererProps {
   content: string
   sources?: SearchResult[]
@@ -21,7 +23,7 @@ export function MarkdownRenderer({ content, sources }: MarkdownRendererProps) {
   }, [content])
 
   // Process children to convert [1] to citation elements  
-  const processChildren = useCallback((children: any): any => {
+  const processChildren = useCallback((children: unknown): unknown => {
     if (typeof children === 'string') {
       const parts = children.split(/(\[\d+\])/g)
       return parts.map((part, index) => {
@@ -42,7 +44,7 @@ export function MarkdownRenderer({ content, sources }: MarkdownRendererProps) {
     }
     
     if (Array.isArray(children)) {
-      return children.map((child, i) => {
+      return children.map((child) => {
         if (typeof child === 'string') {
           return processChildren(child)
         }
@@ -55,30 +57,30 @@ export function MarkdownRenderer({ content, sources }: MarkdownRendererProps) {
 
   // Custom components for markdown rendering
   const components = useMemo(() => ({
-    p: ({ children, ...props }: any) => (
+    p: ({ children, ...props }: ComponentProps) => (
       <p className="mb-4 last:mb-0" {...props}>
-        {processChildren(children)}
+        {processChildren(children as React.ReactNode) as React.ReactNode}
       </p>
     ),
-    ul: ({ children }: any) => (
+    ul: ({ children }: ComponentProps) => (
       <ul className="mb-4 last:mb-0">{children}</ul>
     ),
-    ol: ({ children }: any) => (
+    ol: ({ children }: ComponentProps) => (
       <ol className="mb-4 last:mb-0">{children}</ol>
     ),
-    li: ({ children, ...props }: any) => (
-      <li {...props}>{processChildren(children)}</li>
+    li: ({ children, ...props }: ComponentProps) => (
+      <li {...props}>{processChildren(children as React.ReactNode) as React.ReactNode}</li>
     ),
-    h1: ({ children }: any) => (
+    h1: ({ children }: ComponentProps) => (
       <h1 className="text-xl font-semibold mb-3 mt-6 first:mt-0">{children}</h1>
     ),
-    h2: ({ children }: any) => (
+    h2: ({ children }: ComponentProps) => (
       <h2 className="text-lg font-semibold mb-3 mt-6 first:mt-0">{children}</h2>
     ),
-    h3: ({ children }: any) => (
+    h3: ({ children }: ComponentProps) => (
       <h3 className="text-base font-semibold mb-2 mt-4 first:mt-0">{children}</h3>
     ),
-    code: ({ children, className }: any) => {
+    code: ({ children, className }: ComponentProps) => {
       const inline = !className?.includes('language-')
       return inline ? (
         <code className="px-1.5 py-0.5 bg-gray-100 dark:bg-zinc-800 rounded text-sm">{children}</code>
@@ -86,11 +88,11 @@ export function MarkdownRenderer({ content, sources }: MarkdownRendererProps) {
         <code className={className}>{children}</code>
       )
     },
-    strong: ({ children, ...props }: any) => (
-      <strong {...props}>{processChildren(children)}</strong>
+    strong: ({ children, ...props }: ComponentProps) => (
+      <strong {...props}>{processChildren(children as React.ReactNode) as React.ReactNode}</strong>
     ),
-    em: ({ children, ...props }: any) => (
-      <em {...props}>{processChildren(children)}</em>
+    em: ({ children, ...props }: ComponentProps) => (
+      <em {...props}>{processChildren(children as React.ReactNode) as React.ReactNode}</em>
     ),
   }), [processChildren])
 

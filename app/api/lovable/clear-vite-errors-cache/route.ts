@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
+import '@/types/sandbox';
 
-declare global {
-  var viteErrorsCache: { errors: any[], timestamp: number } | null;
-}
 
 export async function POST() {
   try {
     // Clear the cache
-    global.viteErrorsCache = null;
+    globalThis.viteErrorsCache = null;
     
     console.log('[clear-vite-errors-cache] Cache cleared');
     

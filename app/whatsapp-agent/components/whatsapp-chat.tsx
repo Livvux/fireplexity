@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -31,7 +31,7 @@ export function WhatsAppChat({ onLogout, sessionName }: WhatsAppChatProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [sessionStatus, setSessionStatus] = useState<string>('WORKING')
   const [useRichEditor, setUseRichEditor] = useState(false)
-  const [contacts, setContacts] = useState<string[]>([])
+  const [contacts] = useState<string[]>([]) // Contact list for validation
   const [showTemplates, setShowTemplates] = useState(false)
   const [showQuickReplies, setShowQuickReplies] = useState(true)
   const [templatesExpanded, setTemplatesExpanded] = useState(false)
@@ -41,17 +41,11 @@ export function WhatsAppChat({ onLogout, sessionName }: WhatsAppChatProps) {
     scrollToBottom()
   }, [messages])
 
-  useEffect(() => {
-    checkSessionStatus()
-    const interval = setInterval(checkSessionStatus, 30000) // Check every 30 seconds
-    return () => clearInterval(interval)
-  }, [])
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const checkSessionStatus = async () => {
+  const checkSessionStatus = useCallback(async () => {
     try {
       const response = await fetch(`/api/whatsapp/session/${sessionName}`)
       if (response.ok) {
@@ -61,7 +55,13 @@ export function WhatsAppChat({ onLogout, sessionName }: WhatsAppChatProps) {
     } catch (error) {
       console.error('Failed to check session status:', error)
     }
-  }
+  }, [sessionName])
+
+  useEffect(() => {
+    checkSessionStatus()
+    const interval = setInterval(checkSessionStatus, 30000) // Check every 30 seconds
+    return () => clearInterval(interval)
+  }, [checkSessionStatus])
 
   const addMessage = (message: Omit<Message, 'id' | 'timestamp'>) => {
     const newMessage: Message = {
@@ -184,7 +184,7 @@ export function WhatsAppChat({ onLogout, sessionName }: WhatsAppChatProps) {
                   })
                   break
               }
-            } catch (parseError) {
+            } catch {
               // Ignore parse errors for incomplete chunks
             }
           }

@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server';
+import '@/types/sandbox';
 import type { SandboxState } from '@/types/sandbox';
 
-declare global {
-  var activeSandbox: any;
-  var sandboxData: any;
-  var sandboxState: SandboxState;
+interface SandboxInstance {
+  kill: () => Promise<void>;
 }
+
 
 export async function POST() {
   try {
     console.log('[kill-sandbox] Terminating sandbox...');
 
-    if (global.activeSandbox) {
+    if (globalThis.activeSandbox) {
       try {
-        await global.activeSandbox.kill();
+        await globalThis.activeSandbox.kill();
         console.log('[kill-sandbox] Sandbox terminated successfully');
       } catch (error) {
         console.error('[kill-sandbox] Error terminating sandbox:', error);
@@ -21,9 +21,9 @@ export async function POST() {
     }
 
     // Clean up global state
-    global.activeSandbox = null;
-    global.sandboxData = null;
-    global.sandboxState = {
+    globalThis.activeSandbox = null;
+    globalThis.sandboxData = null;
+    globalThis.sandboxState = {
       fileCache: null,
       sandbox: null,
       sandboxData: null
@@ -34,13 +34,13 @@ export async function POST() {
       message: 'Sandbox terminated successfully'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[kill-sandbox] Error:', error);
     
     return NextResponse.json({
       success: false,
       error: 'Failed to terminate sandbox',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 }

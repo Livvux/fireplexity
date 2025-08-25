@@ -12,13 +12,14 @@ export async function GET(
     const session = await wahaClient.getSession(sessionName)
     
     return NextResponse.json(session)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to get WAHA session:', error)
     
     // If session doesn't exist (404), return default STOPPED status
-    if (error?.message?.includes('Session not found') || 
-        error?.message?.includes('404') ||
-        error?.message?.includes('Not Found')) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('Session not found') || 
+        errorMessage.includes('404') ||
+        errorMessage.includes('Not Found')) {
       return NextResponse.json({
         name: sessionName,
         status: 'STOPPED'

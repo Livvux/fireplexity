@@ -5,6 +5,7 @@ import { DefaultChatTransport } from 'ai'
 import { SearchComponent } from './search'
 import { ChatInterface } from './chat-interface'
 import { SearchResult, NewsResult, ImageResult } from './types'
+import { Part } from '@/types/lovable'
 import { Button } from '@/components/ui/button'
 import { AuroraText } from '@/components/ui/aurora-text'
 import Link from 'next/link'
@@ -19,7 +20,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { ErrorDisplay } from '@/components/error-display'
+// import { ErrorDisplay } from '@/components/error-display' // Not used
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { LogoutButton } from '@/components/auth/logout-button'
 
@@ -95,26 +96,30 @@ export default function LivvuxPlexityPage() {
       let latestFollowUpQuestions: string[] = []
       let latestStatus: string | null = null
       
-      lastMessage.parts.forEach((part: any) => {
+      lastMessage.parts.forEach((part: Part) => {
         // Handle different data part types
         if (part.type === 'data-sources' && part.data) {
           hasSourceData = true
+          const data = part.data as { sources?: SearchResult[]; newsResults?: NewsResult[]; imageResults?: ImageResult[] };
           // Use the latest data from this part
-          if (part.data.sources) latestSources = part.data.sources
-          if (part.data.newsResults) latestNewsResults = part.data.newsResults
-          if (part.data.imageResults) latestImageResults = part.data.imageResults
+          if (data.sources) latestSources = data.sources
+          if (data.newsResults) latestNewsResults = data.newsResults
+          if (data.imageResults) latestImageResults = data.imageResults
         }
         
         if (part.type === 'data-ticker' && part.data) {
-          latestTicker = part.data.symbol
+          const data = part.data as { symbol: string };
+          latestTicker = data.symbol
         }
         
-        if (part.type === 'data-followup' && part.data && part.data.questions) {
-          latestFollowUpQuestions = part.data.questions
+        if (part.type === 'data-followup' && part.data) {
+          const data = part.data as { questions: string[] };
+          if (data.questions) latestFollowUpQuestions = data.questions
         }
         
         if (part.type === 'data-status' && part.data) {
-          latestStatus = part.data.message || ''
+          const data = part.data as { message: string };
+          latestStatus = data.message || ''
         }
       })
       
@@ -147,7 +152,7 @@ export default function LivvuxPlexityPage() {
         })
       }
     }
-  }, [status, messages.length, messages[messages.length - 1]?.parts?.length])
+  }, [status, messages])
 
   // Check for environment variables on mount
   useEffect(() => {
@@ -166,7 +171,7 @@ export default function LivvuxPlexityPage() {
             setHasApiKey(true)
           }
         }
-      } catch (error) {
+      } catch {
         // Error checking environment
       } finally {
         setIsCheckingEnv(false)

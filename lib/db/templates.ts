@@ -348,9 +348,11 @@ export function getQuickReplyCategories(replies: QuickReply[]): string[] {
   return [...new Set(categories)].sort()
 }
 
-export default {
+const templateExport = {
   TemplateManager,
   QuickRepliesManager,
   getUniqueCategories,
   getQuickReplyCategories
 }
+
+export default templateExport;

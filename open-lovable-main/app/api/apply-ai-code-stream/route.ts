@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import '@/types/sandbox';
 import { Sandbox } from '@e2b/code-interpreter';
 import type { SandboxState } from '@/types/sandbox';
 import type { ConversationState } from '@/types/conversation';
 
-declare global {
-  var conversationState: ConversationState | null;
-  var activeSandbox: any;
-  var existingFiles: Set<string>;
-  var sandboxState: SandboxState;
-}
 
 interface ParsedResponse {
   explanation: string;
@@ -290,12 +285,12 @@ export async function POST(request: NextRequest) {
     console.log('[apply-ai-code-stream] Packages found:', parsed.packages);
     
     // Initialize existingFiles if not already
-    if (!global.existingFiles) {
-      global.existingFiles = new Set<string>();
+    if (!globalThis.existingFiles) {
+      globalThis.existingFiles = new Set<string>();
     }
     
     // First, always check the global state for active sandbox
-    let sandbox = global.activeSandbox;
+    let sandbox = globalThis.activeSandbox;
     
     // If we don't have a sandbox in this instance but we have a sandboxId,
     // reconnect to the existing sandbox
@@ -308,20 +303,20 @@ export async function POST(request: NextRequest) {
         console.log(`[apply-ai-code-stream] Successfully reconnected to sandbox ${sandboxId}`);
         
         // Store the reconnected sandbox globally for this instance
-        global.activeSandbox = sandbox;
+        globalThis.activeSandbox = sandbox;
         
         // Update sandbox data if needed
-        if (!global.sandboxData) {
+        if (!globalThis.sandboxData) {
           const host = (sandbox as any).getHost(5173);
-          global.sandboxData = {
+          globalThis.sandboxData = {
             sandboxId,
             url: `https://${host}`
           };
         }
         
         // Initialize existingFiles if not already
-        if (!global.existingFiles) {
-          global.existingFiles = new Set<string>();
+        if (!globalThis.existingFiles) {
+          globalThis.existingFiles = new Set<string>();
         }
       } catch (reconnectError) {
         console.error(`[apply-ai-code-stream] Failed to reconnect to sandbox ${sandboxId}:`, reconnectError);
@@ -526,7 +521,7 @@ export async function POST(request: NextRequest) {
             }
             
             const fullPath = `/home/user/app/${normalizedPath}`;
-            const isUpdate = global.existingFiles.has(normalizedPath);
+            const isUpdate = globalThis.existingFiles.has(normalizedPath);
             
             // Remove any CSS imports from JSX/JS files (we're using Tailwind)
             let fileContent = file.content;
@@ -549,8 +544,8 @@ print(f"File written: ${fullPath}")
             `);
             
             // Update file cache
-            if (global.sandboxState?.fileCache) {
-              global.sandboxState.fileCache.files[normalizedPath] = {
+            if (globalThis.sandboxState?.fileCache) {
+              globalThis.sandboxState.fileCache.files[normalizedPath] = {
                 content: fileContent,
                 lastModified: Date.now()
               };
@@ -560,7 +555,7 @@ print(f"File written: ${fullPath}")
               if (results.filesUpdated) results.filesUpdated.push(normalizedPath);
             } else {
               if (results.filesCreated) results.filesCreated.push(normalizedPath);
-              if (global.existingFiles) global.existingFiles.add(normalizedPath);
+              if (globalThis.existingFiles) globalThis.existingFiles.add(normalizedPath);
             }
             
             await sendProgress({
@@ -654,8 +649,8 @@ print(f"File written: ${fullPath}")
         });
         
         // Track applied files in conversation state
-        if (global.conversationState && results.filesCreated.length > 0) {
-          const messages = global.conversationState.context.messages;
+        if (globalThis.conversationState && results.filesCreated.length > 0) {
+          const messages = globalThis.conversationState.context.messages;
           if (messages.length > 0) {
             const lastMessage = messages[messages.length - 1];
             if (lastMessage.role === 'user') {
@@ -667,15 +662,15 @@ print(f"File written: ${fullPath}")
           }
           
           // Track applied code in project evolution
-          if (global.conversationState.context.projectEvolution) {
-            global.conversationState.context.projectEvolution.majorChanges.push({
+          if (globalThis.conversationState.context.projectEvolution) {
+            globalThis.conversationState.context.projectEvolution.majorChanges.push({
               timestamp: Date.now(),
               description: parsed.explanation || 'Code applied',
               filesAffected: results.filesCreated || []
             });
           }
           
-          global.conversationState.lastUpdated = Date.now();
+          globalThis.conversationState.lastUpdated = Date.now();
         }
         
       } catch (error) {

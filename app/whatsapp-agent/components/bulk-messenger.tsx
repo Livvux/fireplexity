@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+// import { Textarea } from '@/components/ui/textarea' // Not used
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
@@ -12,22 +12,22 @@ import {
   Send, 
   Search, 
   Upload,
-  Download,
-  Filter,
-  Clock,
+  // Download, // Not used
+  // Filter, // Not used
+  // Clock, // Not used
   CheckCircle,
-  XCircle,
-  AlertCircle,
+  // XCircle, // Not used
+  // AlertCircle, // Not used
   Loader2,
-  FileSpreadsheet,
-  UserPlus,
-  X,
+  // FileSpreadsheet, // Not used
+  // UserPlus, // Not used
+  // X, // Not used
   Eye,
-  Play,
-  Pause,
-  RotateCcw
+  // Play, // Not used
+  // Pause, // Not used
+  // RotateCcw // Not used
 } from 'lucide-react'
-import { WhatsAppContact, MessageTemplate, BulkMessage } from '@/types/whatsapp'
+import { WhatsAppContact, MessageTemplate } from '@/types/whatsapp'
 import { MessageFormatter } from '@/lib/message-formatter'
 import { cn } from '@/lib/utils'
 
@@ -37,11 +37,11 @@ interface BulkMessengerProps {
   className?: string
 }
 
-interface ContactSelection {
-  contact: WhatsAppContact
-  selected: boolean
-  variables?: Record<string, string>
-}
+// interface ContactSelection { // Not used
+//   contact: WhatsAppContact
+//   selected: boolean
+//   variables?: Record<string, string>
+// }
 
 export function BulkMessenger({ sessionName, disabled = false, className }: BulkMessengerProps) {
   const [contacts, setContacts] = useState<WhatsAppContact[]>([])
@@ -55,7 +55,7 @@ export function BulkMessenger({ sessionName, disabled = false, className }: Bulk
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
   const [sendProgress, setSendProgress] = useState({ sent: 0, failed: 0, total: 0 })
-  const [bulkJob, setBulkJob] = useState<BulkMessage | null>(null)
+  // const [bulkJob, setBulkJob] = useState<BulkMessage | null>(null) // Not used
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [showPreview, setShowPreview] = useState(false)
 

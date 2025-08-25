@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
-import type { SandboxState } from '@/types/sandbox';
+import '@/types/sandbox';
+import type { FileNode } from '@/types/lovable';
 
-declare global {
-  var sandboxState: SandboxState;
-  var activeSandbox: any;
+interface SandboxInstance {
+  runCode: (lang: string, code: string) => Promise<{ stdout?: string; stderr?: string }>;
+}
+
+function isFileNodeArray(x: unknown): x is FileNode[] {
+  return Array.isArray(x);
 }
 
 export async function GET() {
   try {
-    const sandbox = global.activeSandbox;
+    const sandbox = globalThis.activeSandbox;
     if (!sandbox) {
       return NextResponse.json({
         success: false,
@@ -70,9 +74,9 @@ print(json.dumps(tree, indent=2))
 
     const treeResult = await sandbox.runCode('python', treeScript);
     
-    let fileStructure = [];
+    let fileStructure: FileNode[] = [];
     try {
-      fileStructure = JSON.parse(treeResult.stdout);
+      fileStructure = JSON.parse(treeResult.stdout || '[]');
     } catch (e) {
       console.error('[get-sandbox-files] Failed to parse tree structure:', e);
       fileStructure = [];
@@ -99,16 +103,16 @@ print(repr(content))
           }
         }
         return null;
-      } catch (e) {
+      } catch {
         return null;
       }
     };
 
     // Recursively collect file contents for important files
-    const collectFiles = async (items: any[], prefix = '') => {
+    const collectFiles = async (items: FileNode[], prefix = '') => {
       for (const item of items) {
         if (item.type === 'file') {
-          const path = item.path;
+          const path = item.path || `${prefix}${item.name}`;
           // Only read text files and important configs
           if (path.match(/\.(jsx?|tsx?|css|json|md|html|txt)$/i) || 
               path.includes('package.json') ||
@@ -120,7 +124,7 @@ print(repr(content))
               files[path] = content;
             }
           }
-        } else if (item.type === 'directory' && item.children) {
+        } else if (item.type === 'dir' && isFileNodeArray(item.children)) {
           await collectFiles(item.children, prefix + item.name + '/');
         }
       }
@@ -131,15 +135,15 @@ print(repr(content))
     console.log(`[get-sandbox-files] Retrieved ${Object.keys(files).length} files`);
 
     // Update global file cache
-    if (!global.sandboxState) {
-      global.sandboxState = {
+    if (!globalThis.sandboxState) {
+      globalThis.sandboxState = {
         fileCache: null,
         sandbox: sandbox,
-        sandboxData: global.sandboxData
+        sandboxData: globalThis.sandboxData || null
       };
     }
 
-    global.sandboxState.fileCache = {
+    globalThis.sandboxState.fileCache = {
       files: Object.fromEntries(
         Object.entries(files).map(([path, content]) => [
           path,
@@ -147,7 +151,7 @@ print(repr(content))
         ])
       ),
       lastSync: Date.now(),
-      sandboxId: global.sandboxData?.sandboxId || 'unknown'
+      sandboxId: globalThis.sandboxData?.sandboxId || 'unknown'
     };
 
     return NextResponse.json({
@@ -157,13 +161,13 @@ print(repr(content))
       totalFiles: Object.keys(files).length
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[get-sandbox-files] Error:', error);
     
     return NextResponse.json({
       success: false,
       error: 'Failed to get sandbox files',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 }

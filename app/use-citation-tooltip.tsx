@@ -85,53 +85,53 @@ export function useCitationTooltip(sources: SearchResult[]) {
     }
   }
 
-  const handleMouseOver = (e: MouseEvent) => {
-    const target = e.target as HTMLElement
-    
-    if (target.tagName === 'SUP' && target.classList.contains('citation')) {
-      // Extract citation number
-      const citationAttr = target.getAttribute('data-citation')
-      let citationNumber: number
+  useEffect(() => {
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
       
-      if (citationAttr) {
-        citationNumber = parseInt(citationAttr, 10)
-      } else {
-        const match = target.textContent?.match(/\[(\d+)\]/)
-        citationNumber = match ? parseInt(match[1], 10) : 0
-      }
-      
-      const source = sources[citationNumber - 1]
-      
-      if (source) {
-        // If hovering over the same citation, just cancel hide
-        if (currentTargetRef.current === target) {
-          if (hideTimeoutRef.current) {
-            clearTimeout(hideTimeoutRef.current)
-            hideTimeoutRef.current = null
-          }
+      if (target.tagName === 'SUP' && target.classList.contains('citation')) {
+        // Extract citation number
+        const citationAttr = target.getAttribute('data-citation')
+        let citationNumber: number
+        
+        if (citationAttr) {
+          citationNumber = parseInt(citationAttr, 10)
         } else {
-          // Different citation - show new tooltip
-          showTooltip(target, source, citationNumber - 1)
+          const match = target.textContent?.match(/\[(\d+)\]/)
+          citationNumber = match ? parseInt(match[1], 10) : 0
+        }
+        
+        const source = sources[citationNumber - 1]
+        
+        if (source) {
+          // If hovering over the same citation, just cancel hide
+          if (currentTargetRef.current === target) {
+            if (hideTimeoutRef.current) {
+              clearTimeout(hideTimeoutRef.current)
+              hideTimeoutRef.current = null
+            }
+          } else {
+            // Different citation - show new tooltip
+            showTooltip(target, source, citationNumber - 1)
+          }
         }
       }
     }
-  }
 
-  const handleMouseOut = (e: MouseEvent) => {
-    const target = e.target as HTMLElement
-    const relatedTarget = e.relatedTarget as HTMLElement
-    
-    // Don't hide if moving within the same citation
-    if (currentTargetRef.current?.contains(relatedTarget)) {
-      return
+    const handleMouseOut = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const relatedTarget = e.relatedTarget as HTMLElement
+      
+      // Don't hide if moving within the same citation
+      if (currentTargetRef.current?.contains(relatedTarget)) {
+        return
+      }
+      
+      if (target.tagName === 'SUP' && target.classList.contains('citation')) {
+        hideTooltip()
+      }
     }
-    
-    if (target.tagName === 'SUP' && target.classList.contains('citation')) {
-      hideTooltip()
-    }
-  }
 
-  useEffect(() => {
     document.addEventListener('mouseover', handleMouseOver)
     document.addEventListener('mouseout', handleMouseOut)
     

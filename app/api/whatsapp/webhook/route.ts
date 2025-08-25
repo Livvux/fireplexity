@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     const webhookData = body as WAHAWebhookMessage | WAHAWebhookStatus
 
     // Log the webhook event
-    addWebhookLog(webhookData.event, webhookData.session, webhookData)
+    addWebhookLog(webhookData.event, webhookData.session, webhookData as unknown as Record<string, unknown>)
 
     // Handle different webhook events
     switch (webhookData.event) {

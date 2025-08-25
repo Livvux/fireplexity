@@ -63,7 +63,7 @@ export class MessageFormatter {
    * Convert markdown to HTML for preview
    */
   static toHtml(text: string): string {
-    let html = text
+    const html = text
       // Bold
       .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
       // Italic

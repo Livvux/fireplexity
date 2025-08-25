@@ -12,9 +12,9 @@ import {
   Plus, 
   Edit, 
   Trash2, 
-  Eye, 
+  // Eye, // Not used
   Copy,
-  Tag,
+  // Tag, // Not used
   Clock,
   Variable,
   Save,
@@ -26,7 +26,7 @@ import { MessageTemplate } from '@/types/whatsapp'
 import { cn } from '@/lib/utils'
 
 interface TemplateManagerProps {
-  onTemplateSelect?: (template: MessageTemplate, variables?: Record<string, string>) => void
+  // onTemplateSelect?: (template: MessageTemplate, variables?: Record<string, string>) => void // Not used
   onProcessedTemplate?: (processed: string) => void
   disabled?: boolean
   className?: string
@@ -34,7 +34,6 @@ interface TemplateManagerProps {
 }
 
 export function TemplateManager({ 
-  onTemplateSelect, 
   onProcessedTemplate,
   disabled = false, 
   className,
@@ -70,7 +69,7 @@ export function TemplateManager({
       })
       setVariables(initVars)
     }
-  }, [selectedTemplate])
+  }, [selectedTemplate, variables])
 
   const loadTemplates = async () => {
     try {

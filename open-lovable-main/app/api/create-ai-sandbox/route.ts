@@ -1,15 +1,10 @@
 import { NextResponse } from 'next/server';
+import '@/types/sandbox';
 import { Sandbox } from '@e2b/code-interpreter';
 import type { SandboxState } from '@/types/sandbox';
 import { appConfig } from '@/config/app.config';
 
 // Store active sandbox globally
-declare global {
-  var activeSandbox: any;
-  var sandboxData: any;
-  var existingFiles: Set<string>;
-  var sandboxState: SandboxState;
-}
 
 export async function POST() {
   let sandbox: any = null;
@@ -18,21 +13,21 @@ export async function POST() {
     console.log('[create-ai-sandbox] Creating base sandbox...');
     
     // Kill existing sandbox if any
-    if (global.activeSandbox) {
+    if (globalThis.activeSandbox) {
       console.log('[create-ai-sandbox] Killing existing sandbox...');
       try {
-        await global.activeSandbox.kill();
+        await globalThis.activeSandbox.kill();
       } catch (e) {
         console.error('Failed to close existing sandbox:', e);
       }
-      global.activeSandbox = null;
+      globalThis.activeSandbox = null;
     }
     
     // Clear existing files tracking
-    if (global.existingFiles) {
-      global.existingFiles.clear();
+    if (globalThis.existingFiles) {
+      globalThis.existingFiles.clear();
     } else {
-      global.existingFiles = new Set<string>();
+      globalThis.existingFiles = new Set<string>();
     }
 
     // Create base sandbox - we'll set up Vite ourselves for full control
@@ -297,8 +292,8 @@ print('✓ Tailwind CSS should be loaded')
     `);
 
     // Store sandbox globally
-    global.activeSandbox = sandbox;
-    global.sandboxData = {
+    globalThis.activeSandbox = sandbox;
+    globalThis.sandboxData = {
       sandboxId,
       url: `https://${host}`
     };
@@ -310,7 +305,7 @@ print('✓ Tailwind CSS should be loaded')
     }
     
     // Initialize sandbox state
-    global.sandboxState = {
+    globalThis.sandboxState = {
       fileCache: {
         files: {},
         lastSync: Date.now(),
@@ -324,14 +319,14 @@ print('✓ Tailwind CSS should be loaded')
     };
     
     // Track initial files
-    global.existingFiles.add('src/App.jsx');
-    global.existingFiles.add('src/main.jsx');
-    global.existingFiles.add('src/index.css');
-    global.existingFiles.add('index.html');
-    global.existingFiles.add('package.json');
-    global.existingFiles.add('vite.config.js');
-    global.existingFiles.add('tailwind.config.js');
-    global.existingFiles.add('postcss.config.js');
+    globalThis.existingFiles.add('src/App.jsx');
+    globalThis.existingFiles.add('src/main.jsx');
+    globalThis.existingFiles.add('src/index.css');
+    globalThis.existingFiles.add('index.html');
+    globalThis.existingFiles.add('package.json');
+    globalThis.existingFiles.add('vite.config.js');
+    globalThis.existingFiles.add('tailwind.config.js');
+    globalThis.existingFiles.add('postcss.config.js');
     
     console.log('[create-ai-sandbox] Sandbox ready at:', `https://${host}`);
     

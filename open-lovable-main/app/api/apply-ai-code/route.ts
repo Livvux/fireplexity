@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import '@/types/sandbox';
 import type { SandboxState } from '@/types/sandbox';
 import type { ConversationState } from '@/types/conversation';
 
-declare global {
-  var conversationState: ConversationState | null;
-}
 
 interface ParsedResponse {
   explanation: string;
@@ -126,11 +124,6 @@ function parseAIResponse(response: string): ParsedResponse {
   return sections;
 }
 
-declare global {
-  var activeSandbox: any;
-  var existingFiles: Set<string>;
-  var sandboxState: SandboxState;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -146,12 +139,12 @@ export async function POST(request: NextRequest) {
     const parsed = parseAIResponse(response);
     
     // Initialize existingFiles if not already
-    if (!global.existingFiles) {
-      global.existingFiles = new Set<string>();
+    if (!globalThis.existingFiles) {
+      globalThis.existingFiles = new Set<string>();
     }
     
     // If no active sandbox, just return parsed results
-    if (!global.activeSandbox) {
+    if (!globalThis.activeSandbox) {
       return NextResponse.json({
         success: true,
         results: {
@@ -171,7 +164,7 @@ export async function POST(request: NextRequest) {
     console.log('[apply-ai-code] Applying code to sandbox...');
     console.log('[apply-ai-code] Is edit mode:', isEdit);
     console.log('[apply-ai-code] Files to write:', parsed.files.map(f => f.path));
-    console.log('[apply-ai-code] Existing files:', Array.from(global.existingFiles));
+    console.log('[apply-ai-code] Existing files:', Array.from(globalThis.existingFiles));
     
     const results = {
       filesCreated: [] as string[],
@@ -328,7 +321,7 @@ export async function POST(request: NextRequest) {
         }
         
         const fullPath = `/home/user/app/${normalizedPath}`;
-        const isUpdate = global.existingFiles.has(normalizedPath);
+        const isUpdate = globalThis.existingFiles.has(normalizedPath);
         
         // Remove any CSS imports from JSX/JS files (we're using Tailwind)
         let fileContent = file.content;
@@ -340,12 +333,12 @@ export async function POST(request: NextRequest) {
         
         try {
           // Use the correct E2B API - sandbox.files.write()
-          await global.activeSandbox.files.write(fullPath, fileContent);
+          await globalThis.activeSandbox.files.write(fullPath, fileContent);
           console.log(`[apply-ai-code] Successfully wrote file: ${fullPath}`);
           
           // Update file cache
-          if (global.sandboxState?.fileCache) {
-            global.sandboxState.fileCache.files[normalizedPath] = {
+          if (globalThis.sandboxState?.fileCache) {
+            globalThis.sandboxState.fileCache.files[normalizedPath] = {
               content: fileContent,
               lastModified: Date.now()
             };
@@ -362,7 +355,7 @@ export async function POST(request: NextRequest) {
           results.filesUpdated.push(normalizedPath);
         } else {
           results.filesCreated.push(normalizedPath);
-          global.existingFiles.add(normalizedPath);
+          globalThis.existingFiles.add(normalizedPath);
         }
       } catch (error) {
         results.errors.push(`Failed to create ${file.path}: ${(error as Error).message}`);
@@ -375,10 +368,10 @@ export async function POST(request: NextRequest) {
       return normalized === 'App.jsx' || normalized === 'App.tsx';
     });
     
-    const appFileExists = global.existingFiles.has('src/App.jsx') || 
-                         global.existingFiles.has('src/App.tsx') ||
-                         global.existingFiles.has('App.jsx') ||
-                         global.existingFiles.has('App.tsx');
+    const appFileExists = globalThis.existingFiles.has('src/App.jsx') || 
+                         globalThis.existingFiles.has('src/App.tsx') ||
+                         globalThis.existingFiles.has('App.jsx') ||
+                         globalThis.existingFiles.has('App.tsx');
     
     if (!isEdit && !appFileInParsed && !appFileExists && parsed.files.length > 0) {
       // Find all component files
@@ -432,7 +425,7 @@ function App() {
 export default App;`;
       
       try {
-        await global.activeSandbox.runCode(`
+        await globalThis.activeSandbox.runCode(`
 file_path = "/home/user/app/src/App.jsx"
 file_content = """${appContent.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"""
 
@@ -454,12 +447,12 @@ print(f"Auto-generated: {file_path}")
         return normalized === 'index.css' || f.path === 'src/index.css';
       });
       
-      const indexCssExists = global.existingFiles.has('src/index.css') || 
-                            global.existingFiles.has('index.css');
+      const indexCssExists = globalThis.existingFiles.has('src/index.css') || 
+                            globalThis.existingFiles.has('index.css');
       
       if (!isEdit && !indexCssInParsed && !indexCssExists) {
         try {
-          await global.activeSandbox.runCode(`
+          await globalThis.activeSandbox.runCode(`
 file_path = "/home/user/app/src/index.css"
 file_content = """@tailwind base;
 @tailwind components;
@@ -500,7 +493,7 @@ print(f"Auto-generated: {file_path}")
     // Execute commands
     for (const cmd of parsed.commands) {
       try {
-        await global.activeSandbox.runCode(`
+        await globalThis.activeSandbox.runCode(`
 import subprocess
 os.chdir('/home/user/app')
 result = subprocess.run(${JSON.stringify(cmd.split(' '))}, capture_output=True, text=True)
@@ -609,9 +602,9 @@ if result.stderr:
     }
     
     // Track applied files in conversation state
-    if (global.conversationState && results.filesCreated.length > 0) {
+    if (globalThis.conversationState && results.filesCreated.length > 0) {
       // Update the last message metadata with edited files
-      const messages = global.conversationState.context.messages;
+      const messages = globalThis.conversationState.context.messages;
       if (messages.length > 0) {
         const lastMessage = messages[messages.length - 1];
         if (lastMessage.role === 'user') {
@@ -623,8 +616,8 @@ if result.stderr:
       }
       
       // Track applied code in project evolution
-      if (global.conversationState.context.projectEvolution) {
-        global.conversationState.context.projectEvolution.majorChanges.push({
+      if (globalThis.conversationState.context.projectEvolution) {
+        globalThis.conversationState.context.projectEvolution.majorChanges.push({
           timestamp: Date.now(),
           description: parsed.explanation || 'Code applied',
           filesAffected: results.filesCreated
@@ -632,7 +625,7 @@ if result.stderr:
       }
       
       // Update last updated timestamp
-      global.conversationState.lastUpdated = Date.now();
+      globalThis.conversationState.lastUpdated = Date.now();
       
       console.log('[apply-ai-code] Updated conversation state with applied files:', results.filesCreated);
     }

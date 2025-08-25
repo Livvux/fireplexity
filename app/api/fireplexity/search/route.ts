@@ -4,9 +4,9 @@ import { streamText, generateText, createUIMessageStream, createUIMessageStreamR
 import type { ModelMessage } from 'ai'
 import { detectCompanyTicker } from '@/lib/company-ticker-map'
 import { selectRelevantContent } from '@/lib/content-selection'
+import type { SearchResultItem, ImageResultItem } from '@/types/lovable'
 
 export async function POST(request: Request) {
-  const requestId = Math.random().toString(36).substring(7)
   
   try {
     const body = await request.json()
@@ -18,8 +18,8 @@ export async function POST(request: Request) {
       const lastMessage = messages[messages.length - 1]
       if (lastMessage.parts) {
         // v5 structure
-        const textParts = lastMessage.parts.filter((p: any) => p.type === 'text')
-        query = textParts.map((p: any) => p.text).join(' ')
+        const textParts = lastMessage.parts.filter((p: { type: string }) => p.type === 'text')
+        query = textParts.map((p: { text: string }) => p.text).join(' ')
       } else if (lastMessage.content) {
         // Fallback for v4 structure
         query = lastMessage.content
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
           const imagesData = searchData.images || []
           
           // Transform web sources metadata
-          sources = webResults.map((item: any) => {
+          sources = webResults.map((item: { url: string; title?: string; description?: string; snippet?: string; content?: string; markdown?: string; favicon?: string; ogImage?: string; image?: string; metadata?: { ogImage?: string } }) => {
             return {
               url: item.url,
               title: item.title || item.url,
@@ -146,22 +146,22 @@ export async function POST(request: Request) {
               image: item.ogImage || item.image || item.metadata?.ogImage,  // Add ogImage support
               siteName: new URL(item.url).hostname
             };
-          }).filter((item: any) => item.url) || []
+          }).filter((item: { url: string }) => item.url) || []
 
           // Transform news results - now with correct schema
-          newsResults = newsData.map((item: any) => {
+          newsResults = newsData.map((item: SearchResultItem) => {
             return {
               url: item.url,
               title: item.title,
               description: item.snippet || item.description,
-              publishedDate: item.date,  // Direct API returns 'date' field
-              source: item.source || (item.url ? new URL(item.url).hostname : undefined),
+              publishedDate: item.date || item.publishedAt,  // Handle both date and publishedAt fields
+              source: item.source?.name || (item.url ? new URL(item.url).hostname : undefined),
               image: item.imageUrl  // Direct API returns 'imageUrl' for news thumbnails
             };
-          }).filter((item: any) => item.url) || []
+          }).filter((item: { url: string }) => item.url) || []
 
           // Transform image results - now with correct schema from direct API
-          imageResults = imagesData.map((item: any) => {
+          imageResults = imagesData.map((item: ImageResultItem) => {
             // Verify we have the required fields
             if (!item.url || !item.imageUrl) {
               return null;
@@ -298,14 +298,6 @@ export async function POST(request: Request) {
           const fullAnswer = await result.text
           
           // Generate follow-up questions
-          const conversationPreview = isFollowUp 
-            ? messages.map((m: { role: string; parts?: any[] }) => {
-                const content = m.parts 
-                  ? m.parts.filter((p: any) => p.type === 'text').map((p: any) => p.text).join(' ')
-                  : ''
-                return `${m.role}: ${content}`
-              }).join('\n\n')
-            : `user: ${query}`
             
           try {
             const followUpResponse = await generateText({
@@ -339,7 +331,7 @@ export async function POST(request: Request) {
               id: 'followup-1',
               data: { questions: followUpQuestions }
             })
-          } catch (followUpError) {
+          } catch {
             // Error generating follow-up questions
           }
           

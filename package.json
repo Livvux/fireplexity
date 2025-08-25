@@ -6,7 +6,12 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
+    "fix": "npm run lint:fix && npm run type-check",
+    "install:fix": "pnpm install && npm run fix"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.6",

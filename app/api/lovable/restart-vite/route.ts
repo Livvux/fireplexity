@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
+import '@/types/sandbox';
 
-declare global {
-  var activeSandbox: any;
+interface SandboxInstance {
+  runCode: (lang: string, code: string) => Promise<{ stdout?: string; stderr?: string }>;
 }
 
 export async function POST() {
   try {
-    if (!global.activeSandbox) {
+    if (!globalThis.activeSandbox) {
       return NextResponse.json({ 
         success: false, 
         error: 'No active sandbox' 
@@ -16,7 +17,7 @@ export async function POST() {
     console.log('[restart-vite] Forcing Vite restart...');
     
     // Kill existing Vite process and restart
-    const result = await global.activeSandbox.runCode(`
+    const result = await globalThis.activeSandbox.runCode(`
 import subprocess
 import os
 import signal

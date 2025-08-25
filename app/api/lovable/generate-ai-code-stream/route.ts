@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import '@/types/sandbox';
 import { createGroq } from '@ai-sdk/groq';
 import { streamText } from 'ai';
 import type { SandboxState } from '@/types/sandbox';
@@ -8,9 +9,6 @@ const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-declare global {
-  var sandboxState: SandboxState;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,14 +80,14 @@ ${contextString}`;
 
     return result.toTextStreamResponse();
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[generate-ai-code-stream] Error:', error);
     
     return NextResponse.json(
       { 
         success: false, 
         error: 'Failed to generate code',
-        details: error.message
+        details: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );

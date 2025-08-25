@@ -150,7 +150,7 @@ function findComponentFiles(prompt: string, manifest: FileManifest): string[] {
     for (const element of uiElements) {
       if (lowerPrompt.includes(element)) {
         // Look for exact component file matches first
-        for (const [path, fileInfo] of Object.entries(manifest.files)) {
+        for (const [path] of Object.entries(manifest.files)) {
           const fileName = path.split('/').pop()?.toLowerCase() || '';
           // Only match if the filename contains the element name
           if (fileName.includes(element + '.') || fileName === element) {
@@ -161,7 +161,7 @@ function findComponentFiles(prompt: string, manifest: FileManifest): string[] {
         }
         
         // If no exact file match, look for the element in file names (but be more selective)
-        for (const [path, fileInfo] of Object.entries(manifest.files)) {
+        for (const [path] of Object.entries(manifest.files)) {
           const fileName = path.split('/').pop()?.toLowerCase() || '';
           if (fileName.includes(element)) {
             files.push(path);
@@ -313,7 +313,7 @@ function findPackageFiles(manifest: FileManifest): string[] {
  */
 function findComponentByContent(prompt: string, manifest: FileManifest): string[] {
   const files: string[] = [];
-  const lowerPrompt = prompt.toLowerCase();
+  // const lowerPrompt = prompt.toLowerCase(); // Not used
   
   console.log('[findComponentByContent] Searching for content in prompt:', prompt);
   
@@ -392,61 +392,6 @@ function getSuggestedContext(
   return allFiles.filter(file => !targetFiles.includes(file));
 }
 
-/**
- * Resolve import path to actual file path
- */
-function resolveImportPath(
-  fromFile: string,
-  importPath: string,
-  manifest: FileManifest
-): string | null {
-  // Handle relative imports
-  if (importPath.startsWith('./') || importPath.startsWith('../')) {
-    const fromDir = fromFile.substring(0, fromFile.lastIndexOf('/'));
-    const resolved = resolveRelativePath(fromDir, importPath);
-    
-    // Try with different extensions
-    const extensions = ['.jsx', '.js', '.tsx', '.ts', ''];
-    for (const ext of extensions) {
-      const fullPath = resolved + ext;
-      if (manifest.files[fullPath]) {
-        return fullPath;
-      }
-      
-      // Try index file
-      const indexPath = resolved + '/index' + ext;
-      if (manifest.files[indexPath]) {
-        return indexPath;
-      }
-    }
-  }
-  
-  // Handle @/ alias (common in Vite projects)
-  if (importPath.startsWith('@/')) {
-    const srcPath = importPath.replace('@/', '/home/user/app/src/');
-    return resolveImportPath(fromFile, srcPath, manifest);
-  }
-  
-  return null;
-}
-
-/**
- * Resolve relative path
- */
-function resolveRelativePath(fromDir: string, relativePath: string): string {
-  const parts = fromDir.split('/');
-  const relParts = relativePath.split('/');
-  
-  for (const part of relParts) {
-    if (part === '..') {
-      parts.pop();
-    } else if (part !== '.') {
-      parts.push(part);
-    }
-  }
-  
-  return parts.join('/');
-}
 
 /**
  * Calculate confidence score

@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { SandboxState } from '@/types/sandbox';
-
-declare global {
-  var sandboxState: SandboxState;
-  var activeSandbox: any;
-}
+import '@/types/sandbox'; // Import global types
 
 interface FileChange {
   path: string;
@@ -55,7 +51,7 @@ export async function POST(request: NextRequest) {
         
         // Create directory if it doesn't exist
         const dirPath = filePath.substring(0, filePath.lastIndexOf('/'));
-        await sandbox.runCode('bash', `mkdir -p "${dirPath}"`);
+        await sandbox.runCode(`mkdir -p "${dirPath}"`, { language: 'bash' });
         
         // Write the file
         const writeScript = `
@@ -68,19 +64,20 @@ with open('${filePath}', 'w', encoding='utf-8') as f:
 print(f"✓ Written {os.path.getsize('${filePath}')} bytes to ${filePath}")
 `;
         
-        const result = await sandbox.runCode('python', writeScript);
+        const result = await sandbox.runCode(writeScript, { language: 'python' });
         
-        if (result.stderr && !result.stderr.includes('Warning')) {
-          console.error(`[apply-ai-code] Error writing ${filePath}:`, result.stderr);
-          errors.push(`${filePath}: ${result.stderr}`);
+        if (result.error) {
+          console.error(`[apply-ai-code] Error writing ${filePath}:`, result.error);
+          errors.push(`${filePath}: ${result.error}`);
         } else {
           console.log(`[apply-ai-code] Successfully wrote ${filePath}`);
           appliedFiles.push(filePath);
         }
         
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`[apply-ai-code] Exception writing ${file.path}:`, error);
-        errors.push(`${file.path}: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        errors.push(`${file.path}: ${errorMessage}`);
       }
     }
 
@@ -107,13 +104,13 @@ print(f"✓ Written {os.path.getsize('${filePath}')} bytes to ${filePath}")
       errors: errors.length > 0 ? errors : undefined
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[apply-ai-code] Error:', error);
     
     return NextResponse.json({
       success: false,
       error: 'Failed to apply code changes',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 }

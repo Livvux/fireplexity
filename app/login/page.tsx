@@ -31,7 +31,7 @@ export default function LoginPage() {
         if (response.ok) {
           router.replace(redirectUrl)
         }
-      } catch (error) {
+      } catch {
         // User is not authenticated, stay on login page
       }
     }
@@ -148,7 +148,7 @@ export default function LoginPage() {
             </p>
             {redirectUrl !== '/' && (
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                You'll be redirected to {redirectUrl} after login
+                You&apos;ll be redirected to {redirectUrl} after login
               </p>
             )}
           </div>

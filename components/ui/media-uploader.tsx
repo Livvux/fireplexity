@@ -1,20 +1,19 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import NextImage from 'next/image'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { 
   Upload, 
   File, 
-  Image, 
+  Image as ImageIcon, 
   Video, 
   Music, 
   X, 
   AlertCircle,
   Loader2,
   FileText,
-  Download
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -76,7 +75,7 @@ export function MediaUploader({
 
   const getFileIcon = (type: MediaFile['type']) => {
     switch (type) {
-      case 'image': return <Image className="w-5 h-5" />
+      case 'image': return <ImageIcon className="w-5 h-5" />
       case 'video': return <Video className="w-5 h-5" />
       case 'audio': return <Music className="w-5 h-5" />
       case 'document': return <FileText className="w-5 h-5" />
@@ -84,7 +83,7 @@ export function MediaUploader({
     }
   }
 
-  const validateFile = (file: File): string | null => {
+  const validateFile = useCallback((file: File): string | null => {
     // Check file size
     if (file.size > maxFileSize * 1024 * 1024) {
       return `File size must be less than ${maxFileSize}MB`
@@ -103,9 +102,9 @@ export function MediaUploader({
     }
 
     return null
-  }
+  }, [maxFileSize, acceptedTypes])
 
-  const createPreview = async (file: File): Promise<string | undefined> => {
+  const createPreview = useCallback(async (file: File): Promise<string | undefined> => {
     if (file.type.startsWith('image/')) {
       return new Promise((resolve) => {
         const reader = new FileReader()
@@ -114,7 +113,7 @@ export function MediaUploader({
       })
     }
     return undefined
-  }
+  }, [])
 
   const processFiles = useCallback(async (fileList: FileList) => {
     if (disabled) return
@@ -144,7 +143,7 @@ export function MediaUploader({
     setFiles(updatedFiles)
     onFilesChange(updatedFiles)
     setIsProcessing(false)
-  }, [files, maxFiles, disabled, onFilesChange])
+  }, [files, maxFiles, disabled, onFilesChange, validateFile])
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files
@@ -285,11 +284,15 @@ export function MediaUploader({
                 {/* File Preview/Icon */}
                 <div className="flex-shrink-0">
                   {mediaFile.preview ? (
-                    <img
-                      src={mediaFile.preview}
-                      alt={mediaFile.file.name}
-                      className="w-12 h-12 object-cover rounded"
-                    />
+                    <div className="relative w-12 h-12 rounded overflow-hidden">
+                      <NextImage
+                        src={mediaFile.preview}
+                        alt={mediaFile.file.name}
+                        fill
+                        className="object-cover"
+                        sizes="48px"
+                      />
+                    </div>
                   ) : (
                     <div className="w-12 h-12 flex items-center justify-center bg-zinc-200 dark:bg-zinc-700 rounded">
                       {getFileIcon(mediaFile.type)}

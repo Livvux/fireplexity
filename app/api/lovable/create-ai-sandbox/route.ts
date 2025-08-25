@@ -1,49 +1,54 @@
 import { NextResponse } from 'next/server';
 import { Sandbox } from '@e2b/code-interpreter';
-import type { SandboxState } from '@/types/sandbox';
+import '@/types/sandbox';
 import { lovableConfig } from '@/config/lovable.config';
 
-// Store active sandbox globally
-declare global {
-  var activeSandbox: any;
-  var sandboxData: any;
-  var existingFiles: Set<string>;
-  var sandboxState: SandboxState;
+// Store active sandbox globally  
+interface ExtendedSandbox {
+  sandboxId: string;
+  getHost?: (port: number) => string;
+  kill(): Promise<void>;
+  runCode(code: string, opts?: any): Promise<any>;
+  [key: string]: any;
 }
 
 export async function POST() {
-  let sandbox: any = null;
+  let sandbox: ExtendedSandbox | null = null;
 
   try {
     console.log('[create-ai-sandbox] Creating base sandbox...');
     
     // Kill existing sandbox if any
-    if (global.activeSandbox) {
+    if (globalThis.activeSandbox) {
       console.log('[create-ai-sandbox] Killing existing sandbox...');
       try {
-        await global.activeSandbox.kill();
+        await globalThis.activeSandbox.kill();
       } catch (e) {
         console.error('Failed to close existing sandbox:', e);
       }
-      global.activeSandbox = null;
+      globalThis.activeSandbox = null;
     }
     
     // Clear existing files tracking
-    if (global.existingFiles) {
-      global.existingFiles.clear();
+    if (globalThis.existingFiles) {
+      globalThis.existingFiles.clear();
     } else {
-      global.existingFiles = new Set<string>();
+      globalThis.existingFiles = new Set<string>();
     }
 
     // Create base sandbox - we'll set up Vite ourselves for full control
     console.log(`[create-ai-sandbox] Creating base E2B sandbox with ${lovableConfig.e2b.timeoutMinutes} minute timeout...`);
-    sandbox = await Sandbox.create({ 
+    const baseSandbox = await Sandbox.create({ 
       apiKey: process.env.E2B_API_KEY,
       timeoutMs: lovableConfig.e2b.timeoutMs
     });
     
-    const sandboxId = (sandbox as any).sandboxId || Date.now().toString();
-    const host = (sandbox as any).getHost(lovableConfig.e2b.vitePort);
+    // Cast to our extended interface
+    sandbox = baseSandbox as ExtendedSandbox;
+    sandbox.sandboxId = baseSandbox.sandboxId || Date.now().toString();
+    
+    const sandboxId = sandbox.sandboxId;
+    const host = baseSandbox.getHost?.(lovableConfig.e2b.vitePort) || 'localhost';
     
     console.log(`[create-ai-sandbox] Sandbox created: ${sandboxId}`);
     console.log(`[create-ai-sandbox] Sandbox host: ${host}`);
@@ -217,38 +222,40 @@ print('✅ All files created successfully!')
 `;
 
     // Execute setup script
-    const result = await sandbox.runCode('python', setupScript);
-    console.log('[create-ai-sandbox] Setup output:', result.stdout);
+    const result = await sandbox.runCode(setupScript, { language: 'python' });
+    console.log('[create-ai-sandbox] Setup output:', result.results?.[0]?.text);
     
-    if (result.stderr) {
-      console.error('[create-ai-sandbox] Setup errors:', result.stderr);
+    if (result.error) {
+      console.error('[create-ai-sandbox] Setup errors:', result.error);
     }
 
     // Install dependencies
     console.log('[create-ai-sandbox] Installing dependencies...');
-    const installResult = await sandbox.runCode('bash', 'cd /home/user/app && npm install', {
+    const installResult = await sandbox.runCode('cd /home/user/app && npm install', {
+      language: 'bash',
       timeout: 120000
     });
     
-    console.log('[create-ai-sandbox] Install output:', installResult.stdout);
-    if (installResult.stderr) {
-      console.log('[create-ai-sandbox] Install stderr:', installResult.stderr);
+    console.log('[create-ai-sandbox] Install output:', installResult.results?.[0]?.text);
+    if (installResult.error) {
+      console.log('[create-ai-sandbox] Install stderr:', installResult.error);
     }
 
     // Start Vite dev server
     console.log('[create-ai-sandbox] Starting Vite dev server...');
-    const startResult = await sandbox.runCode('bash', 'cd /home/user/app && npm run dev > vite.log 2>&1 &', {
+    const startResult = await sandbox.runCode('cd /home/user/app && npm run dev > vite.log 2>&1 &', {
+      language: 'bash',
       timeout: 10000
     });
     
-    console.log('[create-ai-sandbox] Vite start output:', startResult.stdout);
+    console.log('[create-ai-sandbox] Vite start output:', startResult.results?.[0]?.text);
 
     // Wait for Vite to be ready
     await new Promise(resolve => setTimeout(resolve, lovableConfig.e2b.viteStartupDelay));
 
     // Store sandbox globally
-    global.activeSandbox = sandbox;
-    global.sandboxData = {
+    globalThis.activeSandbox = sandbox;
+    globalThis.sandboxData = {
       sandboxId,
       url: host,
       port: lovableConfig.e2b.vitePort
@@ -263,7 +270,7 @@ print('✅ All files created successfully!')
       port: lovableConfig.e2b.vitePort
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[create-ai-sandbox] Error:', error);
     
     // Clean up on error
@@ -279,7 +286,7 @@ print('✅ All files created successfully!')
       { 
         success: false, 
         error: 'Failed to create sandbox',
-        details: error.message
+        details: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );

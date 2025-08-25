@@ -32,6 +32,24 @@ export interface WAHAMediaMessage {
   mentions?: string[]
 }
 
+export interface WAHAMessageResponse {
+  id: string
+  chatId: string
+  timestamp?: number
+}
+
+export interface WAHAChat {
+  id: string
+  name?: string
+  isGroup?: boolean
+}
+
+export interface WAHAContact {
+  id: string
+  name?: string
+  pushname?: string
+}
+
 export interface WAHAFileInfo {
   mimetype: string
   filename: string
@@ -91,11 +109,12 @@ export class WAHAClient {
   async getSessionSafe(sessionName: string = 'default'): Promise<WAHASession> {
     try {
       return await this.getSession(sessionName)
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If session doesn't exist, return default STOPPED status
-      if (error?.message?.includes('Session not found') || 
-          error?.message?.includes('404') ||
-          error?.message?.includes('Not Found')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('Session not found') || 
+          errorMessage.includes('404') ||
+          errorMessage.includes('Not Found')) {
         return {
           name: sessionName,
           status: 'STOPPED'
@@ -107,7 +126,7 @@ export class WAHAClient {
   }
 
   async createOrUpdateSession(sessionName: string = 'default', webhookUrl?: string): Promise<WAHASession> {
-    const config: any = {}
+    const config: { webhooks?: Array<{ url: string; events: string[] }> } = {}
     
     if (webhookUrl) {
       config.webhooks = [
@@ -129,9 +148,10 @@ export class WAHAClient {
         method: 'POST',
         body: JSON.stringify(sessionBody),
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If session already exists, update it
-      if (error?.message?.includes('already exists') || error?.message?.includes('422')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('already exists') || errorMessage.includes('422')) {
         return this.request<WAHASession>(`/api/sessions/${sessionName}`, {
           method: 'PUT',
           body: JSON.stringify(sessionBody),
@@ -209,7 +229,7 @@ export class WAHAClient {
     })
   }
 
-  async sendText(message: WAHAMessage): Promise<any> {
+  async sendText(message: WAHAMessage): Promise<WAHAMessageResponse> {
     const payload = {
       session: message.session || 'default',
       chatId: message.chatId,
@@ -225,7 +245,7 @@ export class WAHAClient {
     })
   }
 
-  async sendImage(message: WAHAMediaMessage): Promise<any> {
+  async sendImage(message: WAHAMediaMessage): Promise<WAHAMessageResponse> {
     const payload = {
       session: message.session || 'default',
       chatId: message.chatId,
@@ -241,7 +261,7 @@ export class WAHAClient {
     })
   }
 
-  async sendFile(message: WAHAMediaMessage): Promise<any> {
+  async sendFile(message: WAHAMediaMessage): Promise<WAHAMessageResponse> {
     const payload = {
       session: message.session || 'default',
       chatId: message.chatId,
@@ -257,7 +277,7 @@ export class WAHAClient {
     })
   }
 
-  async sendVideo(message: WAHAMediaMessage): Promise<any> {
+  async sendVideo(message: WAHAMediaMessage): Promise<WAHAMessageResponse> {
     const payload = {
       session: message.session || 'default',
       chatId: message.chatId,
@@ -273,7 +293,7 @@ export class WAHAClient {
     })
   }
 
-  async sendAudio(message: WAHAMediaMessage): Promise<any> {
+  async sendAudio(message: WAHAMediaMessage): Promise<WAHAMessageResponse> {
     const payload = {
       session: message.session || 'default',
       chatId: message.chatId,
@@ -314,7 +334,7 @@ export class WAHAClient {
   /**
    * Send media file based on its type
    */
-  async sendMedia(file: File, chatId: string, caption?: string, sessionName: string = 'default'): Promise<any> {
+  async sendMedia(file: File, chatId: string, caption?: string, sessionName: string = 'default'): Promise<WAHAMessageResponse> {
     const fileInfo = await WAHAClient.fileToBase64(file)
     
     const mediaMessage: WAHAMediaMessage = {
@@ -341,15 +361,15 @@ export class WAHAClient {
     }
   }
 
-  async getChats(sessionName: string = 'default'): Promise<any[]> {
-    return this.request<any[]>(`/api/sessions/${sessionName}/chats`)
+  async getChats(sessionName: string = 'default'): Promise<WAHAChat[]> {
+    return this.request<WAHAChat[]>(`/api/sessions/${sessionName}/chats`)
   }
 
-  async getContacts(sessionName: string = 'default'): Promise<any[]> {
-    return this.request<any[]>(`/api/sessions/${sessionName}/contacts`)
+  async getContacts(sessionName: string = 'default'): Promise<WAHAContact[]> {
+    return this.request<WAHAContact[]>(`/api/sessions/${sessionName}/contacts`)
   }
 
-  async getSessionInfo(sessionName: string = 'default'): Promise<any> {
+  async getSessionInfo(sessionName: string = 'default'): Promise<WAHASession> {
     return this.request(`/api/sessions/${sessionName}/me`)
   }
 }

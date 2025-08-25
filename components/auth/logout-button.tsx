@@ -19,7 +19,7 @@ export function LogoutButton({ className, variant = 'outline' }: LogoutButtonPro
     try {
       await logout()
       toast.success('Logged out successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to logout. Please try again.')
     } finally {
       setIsLoggingOut(false)

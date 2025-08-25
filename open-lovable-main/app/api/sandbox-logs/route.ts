@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import '@/types/sandbox';
 
-declare global {
-  var activeSandbox: any;
-}
 
 export async function GET(request: NextRequest) {
   try {
-    if (!global.activeSandbox) {
+    if (!globalThis.activeSandbox) {
       return NextResponse.json({ 
         success: false, 
         error: 'No active sandbox' 
@@ -16,7 +14,7 @@ export async function GET(request: NextRequest) {
     console.log('[sandbox-logs] Fetching Vite dev server logs...');
     
     // Get the last N lines of the Vite dev server output
-    const result = await global.activeSandbox.runCode(`
+    const result = await globalThis.activeSandbox.runCode(`
 import subprocess
 import os
 

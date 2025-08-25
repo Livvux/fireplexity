@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createWAHAClient, WAHAClient } from '@/lib/waha-client'
+import { createWAHAClient } from '@/lib/waha-client'
 
 export async function POST(request: NextRequest) {
   try {

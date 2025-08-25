@@ -244,16 +244,3 @@ export interface WebhookSessionStatus {
   timestamp: number
 }
 
-export type {
-  WhatsAppMessage,
-  WhatsAppContact,
-  WhatsAppChat,
-  WhatsAppGroup,
-  MediaAttachment,
-  MessageTemplate,
-  QuickReply,
-  BulkMessage,
-  ScheduledMessage,
-  ContactTag,
-  WhatsAppSession
-}

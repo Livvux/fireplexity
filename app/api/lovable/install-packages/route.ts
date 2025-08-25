@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Sandbox } from '@e2b/code-interpreter';
+import '@/types/sandbox';
 
-declare global {
-  var activeSandbox: any;
-  var sandboxData: any;
+interface SandboxInstance {
+  runCode: (lang: string, code: string) => Promise<{ stdout?: string; stderr?: string }>;
 }
 
 export async function POST(request: NextRequest) {
@@ -37,13 +37,13 @@ export async function POST(request: NextRequest) {
     }
     
     // Try to get sandbox - either from global or reconnect
-    let sandbox = global.activeSandbox;
+    let sandbox = globalThis.activeSandbox;
     
     if (!sandbox && sandboxId) {
       console.log(`[install-packages] Reconnecting to sandbox ${sandboxId}...`);
       try {
         sandbox = await Sandbox.connect(sandboxId, { apiKey: process.env.E2B_API_KEY });
-        global.activeSandbox = sandbox;
+        globalThis.activeSandbox = sandbox;
         console.log(`[install-packages] Successfully reconnected to sandbox ${sandboxId}`);
       } catch (error) {
         console.error(`[install-packages] Failed to reconnect to sandbox:`, error);
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     const writer = stream.writable.getWriter();
     
     // Function to send progress updates
-    const sendProgress = async (data: any) => {
+    const sendProgress = async (data: Record<string, unknown>) => {
       const message = `data: ${JSON.stringify(data)}\n\n`;
       await writer.write(encoder.encode(message));
     };
@@ -182,7 +182,7 @@ except Exception as e:
         }
         
         // Install only packages that aren't already installed
-        const packageList = packagesToInstall.join(' ');
+        // const packageList = packagesToInstall.join(' '); // Not used
         // Only send the npm install command message if we're actually installing new packages
         await sendProgress({ 
           type: 'info', 

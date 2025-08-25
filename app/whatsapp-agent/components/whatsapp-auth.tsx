@@ -95,8 +95,8 @@ export function WhatsAppAuth({ onAuthenticated, onLogout, sessionName }: WhatsAp
           setLastQrUpdate(Date.now())
         }
       }
-    } catch (err) {
-      console.error('Failed to fetch QR code:', err)
+    } catch (error) {
+      console.error('Failed to fetch QR code:', error)
     }
   }, [currentSessionName])
 
@@ -122,7 +122,7 @@ export function WhatsAppAuth({ onAuthenticated, onLogout, sessionName }: WhatsAp
         const errorData = await response.json()
         setError(errorData.error || 'Failed to start session')
       }
-    } catch (err) {
+    } catch {
       setError('Failed to start WhatsApp session')
     } finally {
       setIsStarting(false)
@@ -146,7 +146,7 @@ export function WhatsAppAuth({ onAuthenticated, onLogout, sessionName }: WhatsAp
       } else {
         setError('Failed to restart session')
       }
-    } catch (err) {
+    } catch {
       setError('Failed to restart WhatsApp session')
     } finally {
       setIsStarting(false)
@@ -175,7 +175,7 @@ export function WhatsAppAuth({ onAuthenticated, onLogout, sessionName }: WhatsAp
         const errorData = await response.json()
         setError(errorData.error || 'Failed to logout')
       }
-    } catch (err) {
+    } catch {
       setError('Failed to logout from WhatsApp')
     } finally {
       setIsLoggingOut(false)
@@ -318,8 +318,8 @@ export function WhatsAppAuth({ onAuthenticated, onLogout, sessionName }: WhatsAp
                 <ol className="text-xs text-left space-y-1 list-decimal list-inside">
                   <li>Open WhatsApp on your phone</li>
                   <li>Tap Menu (⋮) or Settings</li>
-                  <li>Tap "Linked Devices"</li>
-                  <li>Tap "Link a Device"</li>
+                  <li>Tap &quot;Linked Devices&quot;</li>
+                  <li>Tap &quot;Link a Device&quot;</li>
                   <li>Scan this QR code</li>
                 </ol>
               </div>
@@ -410,7 +410,7 @@ export function WhatsAppAuth({ onAuthenticated, onLogout, sessionName }: WhatsAp
                 </h3>
                 <p className="text-sm text-amber-700 dark:text-amber-300 mb-4">
                   This will disconnect your WhatsApp session and remove this device from your connected devices list. 
-                  You'll need to scan the QR code again to reconnect.
+                  You&apos;ll need to scan the QR code again to reconnect.
                 </p>
                 <div className="flex space-x-2">
                   <Button 

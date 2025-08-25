@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import '@/types/sandbox';
 
-declare global {
-  var viteErrors: any[];
+interface ViteError {
+  type: string;
+  message: string;
+  file: string;
+  timestamp: string;
+  import?: string;
 }
 
 // Initialize global viteErrors array if it doesn't exist
-if (!global.viteErrors) {
-  global.viteErrors = [];
+if (!globalThis.viteErrors) {
+  globalThis.viteErrors = [];
 }
 
 export async function POST(request: NextRequest) {
@@ -21,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Parse the error to extract useful information
-    const errorObj: any = {
+    const errorObj: ViteError = {
       type,
       message: error,
       file: file || 'unknown',
@@ -37,11 +42,11 @@ export async function POST(request: NextRequest) {
     }
     
     // Add to global errors array
-    global.viteErrors.push(errorObj);
+    globalThis.viteErrors?.push(errorObj);
     
     // Keep only last 50 errors
-    if (global.viteErrors.length > 50) {
-      global.viteErrors = global.viteErrors.slice(-50);
+    if (globalThis.viteErrors && globalThis.viteErrors.length > 50) {
+      globalThis.viteErrors = globalThis.viteErrors.slice(-50);
     }
     
     console.log('[report-vite-error] Error reported:', errorObj);

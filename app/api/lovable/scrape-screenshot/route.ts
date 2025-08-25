@@ -47,10 +47,10 @@ export async function POST(req: NextRequest) {
       metadata: data.data.metadata
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Screenshot capture error:', error);
     return NextResponse.json({ 
-      error: error.message || 'Failed to capture screenshot' 
+      error: error instanceof Error ? error.message : 'Failed to capture screenshot' 
     }, { status: 500 });
   }
 }

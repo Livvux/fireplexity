@@ -1,8 +1,9 @@
 'use client'
 
-import { Search, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+// import { Search } from 'lucide-react' // Not used
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+// import { Button } from '@/components/ui/button' // Not used
 
 interface SearchComponentProps {
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void

@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
+import '@/types/sandbox';
 
-declare global {
-  var activeSandbox: any;
-  var sandboxData: any;
+interface SandboxInstance {
+  runCode: (lang: string, code: string) => Promise<{ stdout?: string; stderr?: string }>;
 }
 
 export async function GET() {
   try {
-    if (!global.activeSandbox || !global.sandboxData) {
+    if (!globalThis.activeSandbox || !globalThis.sandboxData) {
       return NextResponse.json({
         success: true,
         status: 'inactive',
@@ -17,7 +17,7 @@ export async function GET() {
 
     // Check if sandbox is still alive
     try {
-      const result = await global.activeSandbox.runCode('python', 'print("alive")', {
+      const result = await globalThis.activeSandbox.runCode('python', 'print("alive")', {
         timeout: 5000
       });
       
@@ -26,9 +26,9 @@ export async function GET() {
           success: true,
           status: 'active',
           sandbox: {
-            sandboxId: global.sandboxData.sandboxId,
-            url: global.sandboxData.url,
-            port: global.sandboxData.port
+            sandboxId: globalThis.sandboxData.sandboxId,
+            url: globalThis.sandboxData.url,
+            port: globalThis.sandboxData.port
           }
         });
       }
@@ -37,8 +37,8 @@ export async function GET() {
     }
 
     // Sandbox is dead, clean up
-    global.activeSandbox = null;
-    global.sandboxData = null;
+    globalThis.activeSandbox = null;
+    globalThis.sandboxData = null;
 
     return NextResponse.json({
       success: true,
@@ -46,13 +46,13 @@ export async function GET() {
       sandbox: null
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[sandbox-status] Error:', error);
     
     return NextResponse.json({
       success: false,
       error: 'Failed to check sandbox status',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 }

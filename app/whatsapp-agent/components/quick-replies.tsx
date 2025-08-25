@@ -8,8 +8,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { 
   Zap, 
   Search, 
-  Plus, 
-  Filter, 
+  // Plus, // Not used
+  // Filter, // Not used 
   Clock,
   Tag,
   ChevronDown,
