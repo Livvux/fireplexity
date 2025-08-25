@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import '@/types/sandbox';
+import '@/types/lovable-sandbox';
 
 
 export async function POST() {

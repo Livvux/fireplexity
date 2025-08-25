@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import '@/types/sandbox';
+import '@/types/lovable-sandbox';
 
 interface ViteError {
   type: string;

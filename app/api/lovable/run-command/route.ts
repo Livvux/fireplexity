@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import '@/types/sandbox';
+import '@/types/lovable-sandbox';
 
 // Get active sandbox from global state (in production, use a proper state management solution)
 export async function POST(request: NextRequest) {

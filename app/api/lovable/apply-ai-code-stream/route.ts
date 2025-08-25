@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Sandbox } from '@e2b/code-interpreter';
-import '@/types/sandbox'; // Import global types
+import '@/types/lovable-sandbox'; // Import global types
 
 interface ParsedResponse {
   explanation: string;

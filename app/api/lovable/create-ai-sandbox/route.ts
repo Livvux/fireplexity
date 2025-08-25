@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Sandbox } from '@e2b/code-interpreter';
-import '@/types/sandbox';
+import '@/types/lovable-sandbox';
 import { lovableConfig } from '@/config/lovable.config';
 
 // Store active sandbox globally  

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import '@/types/sandbox';
+import '@/types/lovable-sandbox';
 import { createGroq } from '@ai-sdk/groq';
 import { streamText } from 'ai';
 import { lovableConfig } from '@/config/lovable.config';

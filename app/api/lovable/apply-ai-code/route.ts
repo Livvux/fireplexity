@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import '@/types/sandbox'; // Import global types
+import '@/types/lovable-sandbox'; // Import global types
 
 interface FileChange {
   path: string;

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import '@/types/sandbox';
+import '@/types/lovable-sandbox';
 import type { FileNode } from '@/types/lovable';
 
 function isFileNodeArray(x: unknown): x is FileNode[] {
