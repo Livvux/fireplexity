@@ -2786,11 +2786,12 @@ Focus on the key sections and content, making it clean and modern.`;
           
           {/* Header */}
           <div className="absolute top-0 left-0 right-0 z-20 px-6 py-4 flex items-center justify-between animate-[fadeIn_0.8s_ease-out]">
-            <img
-              src="/firecrawl-logo-with-fire.webp"
-              alt="Firecrawl"
-              className="h-8 w-auto"
-            />
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">L</span>
+              </div>
+              <span className="text-xl font-semibold text-[#36322F]">Lovable</span>
+            </div>
             <a 
               href="https://github.com/mendableai/open-lovable" 
               target="_blank" 
@@ -3003,11 +3004,12 @@ Focus on the key sections and content, making it clean and modern.`;
       
       <div className="bg-card px-4 py-4 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <img
-            src="/firecrawl-logo-with-fire.webp"
-            alt="Firecrawl"
-            className="h-8 w-auto"
-          />
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">L</span>
+            </div>
+            <span className="text-xl font-semibold text-foreground">Lovable</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {/* Model Selector - Left side */}

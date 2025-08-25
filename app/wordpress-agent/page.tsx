@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { LogoutButton } from '@/components/auth/logout-button'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export default function WordPressAgentPage() {
   return (
@@ -50,6 +52,10 @@ export default function WordPressAgentPage() {
             >
               Lovable
             </Link>
+            <div className="flex items-center space-x-4">
+              <ThemeToggle />
+              <LogoutButton variant="ghost" />
+            </div>
           </nav>
         </div>
       </header>

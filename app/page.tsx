@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { ErrorDisplay } from '@/components/error-display'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { LogoutButton } from '@/components/auth/logout-button'
 
 interface MessageData {
   sources: SearchResult[]
@@ -291,7 +292,10 @@ export default function LivvuxPlexityPage() {
             >
               Lovable
             </Link>
-            <ThemeToggle />
+            <div className="flex items-center space-x-4">
+              <ThemeToggle />
+              <LogoutButton variant="ghost" />
+            </div>
           </nav>
         </div>
       </header>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from 'sonner'
 import { ThemeProvider } from "next-themes"
+import { AuthProvider } from '@/components/auth/auth-provider'
 
 export const metadata: Metadata = {
   title: "livvuxPlexity v2 - AI-Powered Multi-Source Search",
@@ -22,8 +23,10 @@ export default function RootLayout({
           enableSystem 
           disableTransitionOnChange
         >
-          {children}
-          <Toaster position="bottom-right" />
+          <AuthProvider>
+            {children}
+            <Toaster position="bottom-right" />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

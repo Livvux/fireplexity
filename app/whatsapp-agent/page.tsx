@@ -5,6 +5,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { WhatsAppAuth } from './components/whatsapp-auth'
 import { WhatsAppChat } from './components/whatsapp-chat'
+import { LogoutButton } from '@/components/auth/logout-button'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export default function WhatsAppAgentPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -77,6 +79,10 @@ export default function WhatsAppAgentPage() {
             >
               Lovable
             </Link>
+            <div className="flex items-center space-x-4">
+              <ThemeToggle />
+              <LogoutButton variant="ghost" />
+            </div>
           </nav>
         </div>
       </header>

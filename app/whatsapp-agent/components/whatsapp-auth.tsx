@@ -28,9 +28,15 @@ export function WhatsAppAuth({ onAuthenticated, onLogout, sessionName }: WhatsAp
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const checkSessionStatus = useCallback(async () => {
-    if (!currentSessionName) return
-    
+    // Always set loading to false when done, even if no session name exists
     try {
+      if (!currentSessionName) {
+        // No session name - just show the start session button
+        setSession(null)
+        setError(null)
+        return
+      }
+      
       const response = await fetch(`/api/whatsapp/session/${currentSessionName}`)
       if (response.ok) {
         const sessionData = await response.json()
@@ -201,7 +207,11 @@ export function WhatsAppAuth({ onAuthenticated, onLogout, sessionName }: WhatsAp
   }, [session?.status, qrCode, fetchQRCode])
 
   const getStatusIcon = () => {
-    switch (session?.status) {
+    if (!session) {
+      return <AlertCircle className="w-5 h-5 text-gray-500" />
+    }
+    
+    switch (session.status) {
       case 'WORKING':
         return <CheckCircle className="w-5 h-5 text-green-500" />
       case 'FAILED':
@@ -216,7 +226,11 @@ export function WhatsAppAuth({ onAuthenticated, onLogout, sessionName }: WhatsAp
   }
 
   const getStatusText = () => {
-    switch (session?.status) {
+    if (!session) {
+      return 'Ready to start'
+    }
+    
+    switch (session.status) {
       case 'WORKING':
         return 'Connected and ready'
       case 'FAILED':
@@ -254,7 +268,7 @@ export function WhatsAppAuth({ onAuthenticated, onLogout, sessionName }: WhatsAp
             </span>
           </div>
 
-          {session?.status === 'STOPPED' && (
+          {(session?.status === 'STOPPED' || !session) && (
             <Button 
               onClick={startSession}
               disabled={isStarting}
