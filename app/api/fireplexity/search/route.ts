@@ -96,14 +96,19 @@ export async function POST(request: Request) {
           writer.write({
             type: 'data-status',
             id: 'status-2',
-            data: { message: 'Searching for relevant sources...' },
+            data: { message: 'Searching for web, news and images...' },
             transient: true
           })
           
-          // Prepare request body for Firecrawl v2 search endpoint
+          // Prepare request body for Firecrawl v2 search endpoint with sources
           const requestBody = {
             query: query,
-            limit: 6
+            limit: 6,
+            sources: ['web', 'news', 'images'], // Request all source types
+            scrapeOptions: {
+              formats: ['markdown', 'html'],
+              onlyMainContent: true
+            }
           }
           
           // Debug logging can be uncommented for troubleshooting
@@ -145,7 +150,7 @@ export async function POST(request: Request) {
           
           const searchData = searchResult.data || {}
 
-          // Handle v2 response format
+          // Handle v2 response format with enhanced fallbacks
           let webResults = []
           let newsData = []
           let imagesData = []
@@ -160,6 +165,26 @@ export async function POST(request: Request) {
             // Fallback: If data is an array (v1 format)
             webResults = searchData
             console.log('Using v1 fallback format (data as array)')
+            
+            // Try to extract news and images from web results if available
+            newsData = webResults.filter((item: any) => 
+              item.title?.toLowerCase().includes('news') || 
+              item.url?.includes('news') ||
+              item.source?.toLowerCase().includes('news') ||
+              new URL(item.url).hostname.includes('news')
+            ).slice(0, 3)
+            
+            // For images, look for image-related content in web results
+            imagesData = webResults.filter((item: any) =>
+              item.image || item.ogImage || item.imageUrl
+            ).slice(0, 6).map((item: any) => ({
+              url: item.url,
+              imageUrl: item.image || item.ogImage || item.imageUrl,
+              title: item.title,
+              alt: item.title,
+            }))
+            
+            console.log('Extracted from web results - News:', newsData.length, 'Images:', imagesData.length)
           } else {
             // Fallback: try to use data directly
             webResults = [searchData].filter(item => item && item.url)
@@ -181,6 +206,47 @@ export async function POST(request: Request) {
             console.log('First image result:', JSON.stringify(imagesData[0], null, 2))
           }
           console.log('======================')
+          
+          // If no news/images found, try secondary searches
+          if (newsData.length === 0 && !searchData.news) {
+            try {
+              console.log('Attempting secondary news search...')
+              const newsRequestBody = {
+                query: query + " news latest",
+                limit: 3,
+                sources: ['news']
+              }
+              
+              const newsResponse = await fetch(`${firecrawlApiUrl}/v2/search`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${firecrawlApiKey}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newsRequestBody)
+              })
+              
+              if (newsResponse.ok) {
+                const newsResult = await newsResponse.json()
+                if (newsResult.data?.news) {
+                  newsData = newsResult.data.news
+                  console.log('Secondary news search found:', newsData.length, 'results')
+                } else if (Array.isArray(newsResult.data)) {
+                  // Filter for news-like results
+                  newsData = newsResult.data.filter((item: any) => 
+                    item.title && item.url && (
+                      item.publishedDate || item.date ||
+                      item.url.includes('news') || 
+                      new URL(item.url).hostname.includes('news')
+                    )
+                  ).slice(0, 3)
+                  console.log('Secondary news search extracted:', newsData.length, 'results')
+                }
+              }
+            } catch (error) {
+              console.log('Secondary news search failed:', error)
+            }
+          }
 
           // Transform web sources metadata
           sources = webResults.map((item: {
@@ -233,26 +299,62 @@ export async function POST(request: Request) {
             imageUrl?: string;
             title?: string;
             alt?: string;
+            image?: string;
+            ogImage?: string;
             imageWidth?: number;
             imageHeight?: number;
             position?: number;
           }) => {
+            // Use various image URL fields
+            const imageUrl = item.imageUrl || item.image || item.ogImage
+            const sourceUrl = item.url
+            
             // Verify we have the required fields
-            if (!item.url || !item.imageUrl) {
+            if (!sourceUrl || !imageUrl) {
               return null;
             }
             return {
-              url: item.imageUrl, // Image URL for display
+              url: sourceUrl, // Source page URL
               title: item.title || 'Untitled',
               alt: item.alt || item.title,
-              source: item.url ? new URL(item.url).hostname : undefined,
-              imageUrl: item.imageUrl, // Thumbnail URL
+              source: new URL(sourceUrl).hostname,
+              imageUrl: imageUrl, // Actual image URL
+              thumbnail: imageUrl, // Thumbnail URL (same as imageUrl)
               imageWidth: item.imageWidth,
               imageHeight: item.imageHeight,
               position: item.position
             };
           }).filter(Boolean) || [] // Filter out null entries
           
+          
+          // Send status update about source availability
+          const sourceStatus = []
+          if (sources.length > 0) sourceStatus.push(`${sources.length} web sources`)
+          if (newsResults.length > 0) sourceStatus.push(`${newsResults.length} news articles`)
+          if (imageResults.length > 0) sourceStatus.push(`${imageResults.length} images`)
+          
+          if (sourceStatus.length > 0) {
+            writer.write({
+              type: 'data-status',
+              id: 'status-sources',
+              data: { message: `Found: ${sourceStatus.join(', ')}` },
+              transient: true
+            })
+          }
+          
+          // Alert if news or images are missing
+          if (newsResults.length === 0 || imageResults.length === 0) {
+            const missing = []
+            if (newsResults.length === 0) missing.push('news')
+            if (imageResults.length === 0) missing.push('images')
+            
+            writer.write({
+              type: 'data-status',
+              id: 'status-limited',
+              data: { message: `Note: ${missing.join(' and ')} not available from this source` },
+              transient: true
+            })
+          }
           
           // Send all sources as a persistent data part
           writer.write({
