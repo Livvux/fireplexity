@@ -7,7 +7,7 @@ import { selectRelevantContent } from '@/lib/content-selection'
 import type { SearchResultItem, ImageResultItem } from '@/types/lovable'
 
 export async function POST(request: Request) {
-  
+  const requestId = Math.random().toString(36).substring(7)
   try {
     const body = await request.json()
     const messages = body.messages || []
@@ -111,10 +111,12 @@ export async function POST(request: Request) {
             },
             body: JSON.stringify({
               query: query,
-              limit: 10,
+              sources: ['web', 'news', 'images'],
+              limit: 6,
               scrapeOptions: {
                 formats: ['markdown'],
-                onlyMainContent: true
+                onlyMainContent: true,
+                maxAge: 86400000 // 24 hours in milliseconds
               }
             })
           })
@@ -125,20 +127,15 @@ export async function POST(request: Request) {
           }
 
           const searchResult = await searchResponse.json()
-          
-          // v2 API returns data as an array of search results
-          const searchResults = Array.isArray(searchResult.data) ? searchResult.data : []
-          
-          // Separate news domains for categorization
-          const newsDomains = [
-            'reuters.com', 'bbc.com', 'cnn.com', 'nytimes.com', 'washingtonpost.com',
-            'theguardian.com', 'apnews.com', 'bloomberg.com', 'wsj.com', 'npr.org',
-            'techcrunch.com', 'wired.com', 'arstechnica.com', 'engadget.com', 'theverge.com',
-            'news.google.com', 'news.yahoo.com', 'foxnews.com', 'nbcnews.com', 'abcnews.go.com'
-          ]
-          
-          // Transform and categorize results from v2 search API
-          const allSources = searchResults.map((item: any) => {
+          const searchData = searchResult.data || {}
+
+          // Extract results from the v2 SDK response
+          const webResults = searchData.web || []
+          const newsData = searchData.news || []
+          const imagesData = searchData.images || []
+
+          // Transform web sources metadata
+          sources = webResults.map((item: any) => {
             return {
               url: item.url,
               title: item.title || item.url,
@@ -146,53 +143,40 @@ export async function POST(request: Request) {
               content: item.content,
               markdown: item.markdown,
               favicon: item.favicon,
-              image: item.image,
-              siteName: item.url ? new URL(item.url).hostname : undefined,
-              publishedDate: item.publishedDate,
-              isNews: item.url ? newsDomains.some(domain => item.url.includes(domain)) : false
+              image: item.ogImage || item.image || item.metadata?.ogImage, // Add ogImage support
+              siteName: new URL(item.url).hostname
             };
-          }).filter((item: { url: string }) => item.url) || []
-          
-          // Split into regular sources and news
-          sources = allSources.filter(item => !item.isNews).slice(0, 6)
-          newsResults = allSources
-            .filter(item => item.isNews)
-            .map(item => ({
+          }).filter((item: any) => item.url) || []
+
+          // Transform news results - now with correct schema
+          newsResults = newsData.map((item: any) => {
+            return {
               url: item.url,
               title: item.title,
-              description: item.description,
-              publishedDate: item.publishedDate,
-              source: item.siteName,
-              image: item.image
-            }))
-            .slice(0, 5)
-          
-          // If we don't have enough news from the main search, add recent items
-          if (newsResults.length < 3) {
-            const recentSources = allSources
-              .filter(item => !item.isNews)
-              .filter(item => {
-                const title = item.title?.toLowerCase() || ''
-                const desc = item.description?.toLowerCase() || ''
-                return title.includes('2024') || title.includes('2025') || 
-                       title.includes('latest') || title.includes('recent') ||
-                       desc.includes('2024') || desc.includes('2025')
-              })
-              .slice(0, 3 - newsResults.length)
-              .map(item => ({
-                url: item.url,
-                title: item.title,
-                description: item.description,
-                publishedDate: item.publishedDate,
-                source: item.siteName,
-                image: item.image
-              }))
-            
-            newsResults = [...newsResults, ...recentSources]
-          }
-          
-          // Images will be empty until Firecrawl search is properly configured
-          imageResults = []
+              description: item.snippet || item.description,
+              publishedDate: item.date, // Direct API returns 'date' field
+              source: item.source || (item.url ? new URL(item.url).hostname : undefined),
+              image: item.imageUrl // Direct API returns 'imageUrl' for news thumbnails
+            };
+          }).filter((item: any) => item.url) || []
+
+          // Transform image results - now with correct schema from direct API
+          imageResults = imagesData.map((item: any) => {
+            // Verify we have the required fields
+            if (!item.url || !item.imageUrl) {
+              return null;
+            }
+            return {
+              url: item.imageUrl, // Image URL for display
+              title: item.title || 'Untitled',
+              alt: item.alt || item.title,
+              source: item.url ? new URL(item.url).hostname : undefined,
+              imageUrl: item.imageUrl, // Thumbnail URL
+              imageWidth: item.imageWidth,
+              imageHeight: item.imageHeight,
+              position: item.position
+            };
+          }).filter(Boolean) || [] // Filter out null entries
           
           
           // Send all sources as a persistent data part
@@ -316,6 +300,10 @@ export async function POST(request: Request) {
           const fullAnswer = await result.text
           
           // Generate follow-up questions
+          const conversationPreview = isFollowUp ? messages.map((m: { role: string; parts?: any[] }) => {
+            const content = m.parts ? m.parts.filter((p: any) => p.type === 'text').map((p: any) => p.text).join(' ') : ''
+            return `${m.role}: ${content}`
+          }).join('\n\n') : `user: ${query}`
             
           try {
             const followUpResponse = await generateText({
@@ -349,7 +337,7 @@ export async function POST(request: Request) {
               id: 'followup-1',
               data: { questions: followUpQuestions }
             })
-          } catch {
+          } catch (followUpError) {
             // Error generating follow-up questions
           }
           

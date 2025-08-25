@@ -22,8 +22,13 @@ export interface NewsResult {
 }
 
 export interface ImageResult {
-  url: string
-  title: string
-  thumbnail?: string
+  url?: string
+  title?: string
+  alt?: string
   source?: string
+  imageUrl?: string
+  imageWidth?: number
+  imageHeight?: number
+  position?: number
+  thumbnail?: string
 }
