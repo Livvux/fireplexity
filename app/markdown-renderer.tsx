@@ -5,7 +5,11 @@ import Streamdown from 'streamdown'
 import { CitationTooltip } from './citation-tooltip-portal'
 import { SearchResult } from './types'
 
-type ComponentProps = { children?: React.ReactNode; [key: string]: unknown };
+type ComponentProps = { 
+  children?: React.ReactNode; 
+  className?: string;
+  [key: string]: unknown;
+};
 
 interface MarkdownRendererProps {
   content: string
@@ -85,7 +89,7 @@ export function MarkdownRenderer({ content, sources }: MarkdownRendererProps) {
       return inline ? (
         <code className="px-1.5 py-0.5 bg-gray-100 dark:bg-zinc-800 rounded text-sm">{children}</code>
       ) : (
-        <code className={className}>{children}</code>
+        <code className={className as string}>{children}</code>
       )
     },
     strong: ({ children, ...props }: ComponentProps) => (
@@ -100,7 +104,7 @@ export function MarkdownRenderer({ content, sources }: MarkdownRendererProps) {
     <>
       <Streamdown
         parseIncompleteMarkdown={true}
-        components={components}
+        components={components as Record<string, React.ComponentType>}
       >
         {processedContent}
       </Streamdown>

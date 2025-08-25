@@ -56,6 +56,10 @@ export function BulkMessenger({ sessionName, disabled = false, className }: Bulk
   const [sendProgress, setSendProgress] = useState({ sent: 0, failed: 0, total: 0 })
   // const [bulkJob, setBulkJob] = useState<BulkMessage | null>(null) // Not used
   const [showPreview, setShowPreview] = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_isLoading, setIsLoading] = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_csvFile, setCsvFile] = useState<File | null>(null)
 
   useEffect(() => {
     loadContacts()

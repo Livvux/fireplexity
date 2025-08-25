@@ -6,7 +6,7 @@ import { useState } from 'react'
 // import { Button } from '@/components/ui/button' // Not used directly
 import { Textarea } from '@/components/ui/textarea'
 import { SearchResult, NewsResult, ImageResult } from './types'
-import { type UIMessage, type UIMessagePart } from 'ai'
+import { type UIMessage } from 'ai'
 import { CharacterCounter } from './character-counter'
 import Image from 'next/image'
 import { MarkdownRenderer } from './markdown-renderer'
@@ -26,8 +26,8 @@ interface MessageData {
 function getMessageContent(message: UIMessage): string {
   if (!message.parts) return ''
   return message.parts
-    .filter((part: UIMessagePart<unknown, unknown>) => part.type === 'text')
-    .map((part: UIMessagePart<unknown, unknown>) => 'text' in part ? part.text : '')
+    .filter((part) => part.type === 'text')
+    .map((part) => 'text' in part ? part.text : '')
     .join('')
 }
 

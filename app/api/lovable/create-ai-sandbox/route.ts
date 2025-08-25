@@ -4,12 +4,8 @@ import '@/types/sandbox';
 import { lovableConfig } from '@/config/lovable.config';
 
 // Store active sandbox globally  
-interface ExtendedSandbox {
+interface ExtendedSandbox extends Sandbox {
   sandboxId: string;
-  getHost?: (port: number) => string;
-  kill(): Promise<void>;
-  runCode(code: string, opts?: unknown): Promise<unknown>;
-  [key: string]: unknown;
 }
 
 export async function POST() {
@@ -43,9 +39,10 @@ export async function POST() {
       timeoutMs: lovableConfig.e2b.timeoutMs
     });
     
-    // Cast to our extended interface
-    sandbox = baseSandbox as ExtendedSandbox;
-    sandbox.sandboxId = baseSandbox.sandboxId || Date.now().toString();
+    // Extend the base sandbox with our additional properties
+    sandbox = Object.assign(baseSandbox, {
+      sandboxId: baseSandbox.sandboxId || Date.now().toString()
+    }) as ExtendedSandbox;
     
     const sandboxId = sandbox.sandboxId;
     const host = baseSandbox.getHost?.(lovableConfig.e2b.vitePort) || 'localhost';
@@ -222,7 +219,7 @@ print('✅ All files created successfully!')
 `;
 
     // Execute setup script
-    const result = await sandbox.runCode(setupScript, { language: 'python' });
+    const result = await sandbox.runCode(setupScript);
     console.log('[create-ai-sandbox] Setup output:', result.results?.[0]?.text);
     
     if (result.error) {
@@ -232,8 +229,7 @@ print('✅ All files created successfully!')
     // Install dependencies
     console.log('[create-ai-sandbox] Installing dependencies...');
     const installResult = await sandbox.runCode('cd /home/user/app && npm install', {
-      language: 'bash',
-      timeout: 120000
+      timeoutMs: 120000
     });
     
     console.log('[create-ai-sandbox] Install output:', installResult.results?.[0]?.text);
@@ -244,8 +240,7 @@ print('✅ All files created successfully!')
     // Start Vite dev server
     console.log('[create-ai-sandbox] Starting Vite dev server...');
     const startResult = await sandbox.runCode('cd /home/user/app && npm run dev > vite.log 2>&1 &', {
-      language: 'bash',
-      timeout: 10000
+      timeoutMs: 10000
     });
     
     console.log('[create-ai-sandbox] Vite start output:', startResult.results?.[0]?.text);

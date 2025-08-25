@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { appConfig } from '@/config/app.config';
 import { Button } from '@/components/ui/button';
@@ -63,7 +63,7 @@ function isApplyResults(value: unknown): value is ApplyResults {
   return typeof value === 'object' && value !== null;
 }
 
-export default function AISandboxPage() {
+function AISandboxPageContent() {
   const [sandboxData, setSandboxData] = useState<SandboxData | null>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ text: 'Not connected', active: false });
@@ -148,6 +148,39 @@ export default function AISandboxPage() {
     files: [],
     lastProcessedPosition: 0
   });
+
+  // Missing state declarations - temporarily unused
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_showLoadingBackground, setShowLoadingBackground] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_responseArea, setResponseArea] = useState<string[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_urlStatus, setUrlStatus] = useState<string[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_urlOverlayVisible, setUrlOverlayVisible] = useState(false);
+
+  // Define fetchSandboxFiles before createSandbox that uses it
+  const fetchSandboxFiles = useCallback(async () => {
+    if (!sandboxData) return;
+    
+    try {
+      const response = await fetch('/api/lovable/get-sandbox-files', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          console.log('[fetchSandboxFiles] Updated file list:', Object.keys(data.files || {}).length, 'files');
+        }
+      }
+    } catch (error) {
+      console.error('[fetchSandboxFiles] Error fetching files:', error);
+    }
+  }, [sandboxData]);
 
   // Define createSandbox before useEffect that calls it
   const createSandbox = useCallback(async (fromHomeScreen = false) => {
@@ -905,28 +938,6 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       }));
     }
   };
-
-  const fetchSandboxFiles = useCallback(async () => {
-    if (!sandboxData) return;
-    
-    try {
-      const response = await fetch('/api/lovable/get-sandbox-files', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          console.log('[fetchSandboxFiles] Updated file list:', Object.keys(data.files || {}).length, 'files');
-        }
-      }
-    } catch (error) {
-      console.error('[fetchSandboxFiles] Error fetching files:', error);
-    }
-  }, [sandboxData]);
   
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _restartViteServer = async (): Promise<void> => { // Not used - but needed for syntax
@@ -3445,4 +3456,19 @@ Focus on the key sections and content, making it clean and modern.`;
 
     </div>
   );
+}
+
+export default function AISandboxPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading AI Development Environment...</p>
+        </div>
+      </div>
+    }>
+      <AISandboxPageContent />
+    </Suspense>
+  )
 }

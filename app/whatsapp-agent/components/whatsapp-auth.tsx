@@ -25,6 +25,8 @@ export function WhatsAppAuth({ onAuthenticated, onLogout, sessionName }: WhatsAp
   const [isStarting, setIsStarting] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_lastQrUpdate, setLastQrUpdate] = useState<number>(0)
 
   const checkSessionStatus = useCallback(async () => {
     // Always set loading to false when done, even if no session name exists
