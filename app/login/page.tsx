@@ -119,9 +119,7 @@ function LoginForm() {
       <header className="px-4 sm:px-6 lg:px-8 py-4">
         <div className="max-w-7xl mx-auto">
           <Link
-            href="https://firecrawl.dev"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/"
             className="flex items-center"
           >
             <Image 

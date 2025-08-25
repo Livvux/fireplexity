@@ -257,9 +257,7 @@ export default function LivvuxPlexityPage() {
       <header className="px-4 sm:px-6 lg:px-8 py-1 mt-2">
         <div className="max-w-[1216px] mx-auto flex items-center justify-between">
           <Link
-            href="https://firecrawl.dev"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/"
             className="flex items-center"
           >
             <Image 
